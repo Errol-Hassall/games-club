@@ -58,6 +58,28 @@ export function cleanCoverUrl(value: unknown): string | null {
   }
 }
 
+// Tags are stored as a comma-separated string; these keep both ends tidy.
+// Long tags are truncated and the list capped rather than rejected, so a
+// clumsy input can never break the form.
+export function cleanTags(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  const seen = new Set<string>();
+  for (const part of value.split(",")) {
+    const tag = part.trim().toLowerCase();
+    if (!tag) continue;
+    seen.add(tag.slice(0, 30));
+  }
+  return [...seen].slice(0, 10);
+}
+
+export function parseTags(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 export function pickRandom<T>(
   items: readonly T[],
   random: () => number = Math.random,

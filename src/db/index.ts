@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS games (
   cover_url TEXT,
   playtime_hours REAL,
   notes TEXT,
+  genres TEXT,
   external_source TEXT,
   external_id TEXT,
   suggested_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -67,6 +68,23 @@ CREATE INDEX IF NOT EXISTS idx_reviews_assignment ON reviews(assignment_id);
 CREATE INDEX IF NOT EXISTS idx_votes_game ON votes(game_id);
 `;
 
+// Columns added after first release. Existing databases are upgraded in place;
+// new databases already have them from the DDL above.
+const COLUMN_UPGRADES: Array<[table: string, column: string, definition: string]> = [
+  ["games", "genres", "TEXT"],
+];
+
+function migrateColumns(db: Database): void {
+  for (const [table, column, definition] of COLUMN_UPGRADES) {
+    const columns = db
+      .query(`PRAGMA table_info(${table})`)
+      .all() as Array<{ name: string }>;
+    if (!columns.some((entry) => entry.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+}
+
 type DbGlobal = typeof globalThis & { __gamesClubDb?: Database };
 
 function databasePath(): string {
@@ -81,6 +99,7 @@ export function getDb(): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path, { create: true });
   db.exec(SCHEMA);
+  migrateColumns(db);
   ensureAdmin(db);
   seedDemo(db);
   global.__gamesClubDb = db;
@@ -118,6 +137,7 @@ type SeedGame = {
   cover: string;
   playtime: number;
   notes: string;
+  genres?: string[];
   month?: number;
   votes?: number[];
   reviews?: Array<{ user: number; rating: number; body: string }>;
@@ -133,6 +153,7 @@ const SEED_USERS = [
 const SEED_GAMES: SeedGame[] = [
   {
     title: "Hades",
+    genres: ["roguelike", "action"],
     platform: "PC, Switch",
     cover: "/covers/hades.jpg",
     playtime: 21,
@@ -143,6 +164,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Outer Wilds",
+    genres: ["exploration", "mystery"],
     platform: "PC, PS5, Xbox",
     cover: "/covers/outer-wilds.jpg",
     playtime: 16,
@@ -153,6 +175,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Stardew Valley",
+    genres: ["farming", "simulation"],
     platform: "PC, Switch",
     cover: "/covers/stardew-valley.jpg",
     playtime: 53,
@@ -178,6 +201,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Disco Elysium",
+    genres: ["rpg", "story-rich"],
     platform: "PC, PS5",
     cover: "/covers/disco-elysium.jpg",
     playtime: 23,
@@ -203,6 +227,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Portal 2",
+    genres: ["puzzle", "sci-fi"],
     platform: "PC, PS3, Xbox 360",
     cover: "/covers/portal-2.jpg",
     playtime: 11,
@@ -223,6 +248,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Celeste",
+    genres: ["platformer"],
     platform: "PC, Switch",
     cover: "/covers/celeste.jpg",
     playtime: 9,
@@ -231,6 +257,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Elden Ring",
+    genres: ["souls", "open-world"],
     platform: "PC, PS5, Xbox",
     cover: "/covers/elden-ring.jpg",
     playtime: 58,
@@ -239,6 +266,7 @@ const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Baldur's Gate 3",
+    genres: ["rpg", "co-op"],
     platform: "PC, PS5",
     cover: "/covers/baldurs-gate-3.jpg",
     playtime: 75,
@@ -285,7 +313,7 @@ function seedDemo(db: Database): void {
   for (const game of SEED_GAMES) {
     const result = db
       .query(
-        "INSERT INTO games (title, platform, cover_url, playtime_hours, notes, suggested_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO games (title, platform, cover_url, playtime_hours, notes, genres, suggested_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         game.title,
@@ -293,6 +321,7 @@ function seedDemo(db: Database): void {
         game.cover,
         game.playtime,
         game.notes,
+        game.genres?.join(", ") ?? null,
         suggestedBy ?? null,
         now.toISOString(),
       );

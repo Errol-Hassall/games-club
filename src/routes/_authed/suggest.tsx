@@ -22,6 +22,7 @@ function SuggestPage() {
   const [title, setTitle] = useState("");
   const [platform, setPlatform] = useState("");
   const [playtimeHours, setPlaytimeHours] = useState("");
+  const [tags, setTags] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [externalSource, setExternalSource] = useState("");
@@ -67,6 +68,7 @@ function SuggestPage() {
           title,
           platform,
           playtimeHours: playtimeHours === "" ? null : Number(playtimeHours),
+          tags,
           coverUrl,
           notes,
           externalSource,
@@ -218,6 +220,16 @@ function SuggestPage() {
                   />
                 </label>
               </div>
+              <label className="block">
+                <span className="label">Tags</span>
+                <input
+                  value={tags}
+                  onChange={(event) => setTags(event.target.value)}
+                  maxLength={120}
+                  className="input"
+                  placeholder="co-op, roguelike, chill — comma separated"
+                />
+              </label>
               <label className="block">
                 <span className="label">Box art URL</span>
                 <input

@@ -4,8 +4,10 @@ import {
   cleanOptionalText,
   cleanPlaytime,
   cleanRating,
+  cleanTags,
   cleanText,
   normalizeUsername,
+  parseTags,
   pickRandom,
   validMonth,
 } from "#/lib/validation";
@@ -80,6 +82,32 @@ describe("cover URLs", () => {
     expect(cleanCoverUrl("javascript:alert(1)")).toBeNull();
     expect(cleanCoverUrl("//evil.example/cover.jpg")).toBeNull();
     expect(cleanCoverUrl("data:image/png;base64,abc")).toBeNull();
+  });
+});
+
+describe("tags", () => {
+  test("splits, trims and lowercases comma-separated input", () => {
+    expect(cleanTags(" Co-op , ROGUELIKE,co-op ")).toEqual([
+      "co-op",
+      "roguelike",
+    ]);
+  });
+
+  test("ignores empty parts and non-string input", () => {
+    expect(cleanTags("")).toEqual([]);
+    expect(cleanTags(", ,")).toEqual([]);
+    expect(cleanTags(null)).toEqual([]);
+  });
+
+  test("truncates long tags and caps the list instead of rejecting", () => {
+    expect(cleanTags("x".repeat(40))).toEqual(["x".repeat(30)]);
+    const twelve = Array.from({ length: 12 }, (_, index) => `tag${index}`).join(",");
+    expect(cleanTags(twelve)).toHaveLength(10);
+  });
+
+  test("round-trips through the stored CSV form", () => {
+    expect(parseTags(cleanTags("a, b ,A").join(", "))).toEqual(["a", "b"]);
+    expect(parseTags(null)).toEqual([]);
   });
 });
 

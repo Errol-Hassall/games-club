@@ -23,7 +23,9 @@ import {
   cleanOptionalText,
   cleanPlaytime,
   cleanRating,
+  cleanTags,
   cleanText,
+  parseTags,
   validMonth,
 } from "#/lib/validation";
 import { requireAdmin, requireUser } from "#/server/session";
@@ -35,6 +37,7 @@ type GameRow = {
   cover_url: string | null;
   playtime_hours: number | null;
   notes: string | null;
+  genres: string | null;
   suggested_by_name: string | null;
   created_at: string;
 };
@@ -60,7 +63,7 @@ type AssignmentRow = GameRow & {
 };
 
 const GAME_COLUMNS = `
-  g.id, g.title, g.platform, g.cover_url, g.playtime_hours, g.notes, g.created_at,
+  g.id, g.title, g.platform, g.cover_url, g.playtime_hours, g.notes, g.genres, g.created_at,
   u.name AS suggested_by_name`;
 
 function mapGame(row: GameRow): Game {
@@ -71,6 +74,7 @@ function mapGame(row: GameRow): Game {
     coverUrl: row.cover_url,
     playtimeHours: row.playtime_hours,
     notes: row.notes,
+    tags: parseTags(row.genres),
     suggestedByName: row.suggested_by_name,
     createdAt: row.created_at,
   };
@@ -379,6 +383,7 @@ export const suggestGame = createServerFn({ method: "POST" })
       playtimeHours: data.playtimeHours ?? null,
       coverUrl: typeof data.coverUrl === "string" ? data.coverUrl : "",
       notes: typeof data.notes === "string" ? data.notes : "",
+      tags: typeof data.tags === "string" ? data.tags : "",
       externalSource:
         typeof data.externalSource === "string" ? data.externalSource : "",
       externalId: typeof data.externalId === "string" ? data.externalId : "",
@@ -394,13 +399,14 @@ export const suggestGame = createServerFn({ method: "POST" })
     const playtime = cleanPlaytime(data.playtimeHours);
     const coverUrl = cleanCoverUrl(data.coverUrl);
     const notes = cleanOptionalText(data.notes, 1000);
+    const tags = cleanTags(data.tags);
     const source = cleanOptionalText(data.externalSource, 24);
     const externalId = cleanOptionalText(data.externalId, 64);
 
     const result = getDb()
       .query(
-        `INSERT INTO games (title, platform, cover_url, playtime_hours, notes, external_source, external_id, suggested_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO games (title, platform, cover_url, playtime_hours, notes, genres, external_source, external_id, suggested_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         title,
@@ -408,6 +414,7 @@ export const suggestGame = createServerFn({ method: "POST" })
         coverUrl,
         playtime,
         notes,
+        tags.length > 0 ? tags.join(", ") : null,
         source,
         externalId,
         user.id,

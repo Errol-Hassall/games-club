@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite";
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -83,5 +84,32 @@ describe("database bootstrap", () => {
       )
       .get() as { count: number };
     expect(assignment.count).toBe(0);
+  });
+
+  test("upgrades an old database that is missing newer columns", () => {
+    const legacyPath = join(directory, "legacy.db");
+    const legacy = new Database(legacyPath, { create: true });
+    legacy.exec(
+      `CREATE TABLE games (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         title TEXT NOT NULL, platform TEXT NOT NULL, cover_url TEXT,
+         playtime_hours REAL, notes TEXT, external_source TEXT,
+         external_id TEXT, suggested_by INTEGER, created_at TEXT NOT NULL)`,
+    );
+    legacy.close();
+
+    const previousPath = process.env.DATABASE_PATH;
+    globalDb.__gamesClubDb = undefined;
+    process.env.DATABASE_PATH = legacyPath;
+    try {
+      const db = getDb();
+      const columns = (
+        db.query("PRAGMA table_info(games)").all() as Array<{ name: string }>
+      ).map((entry) => entry.name);
+      expect(columns).toContain("genres");
+    } finally {
+      globalDb.__gamesClubDb = undefined;
+      process.env.DATABASE_PATH = previousPath;
+    }
   });
 });

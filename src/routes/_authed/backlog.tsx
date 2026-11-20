@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { GameCard } from "#/components/game-card";
 import { Icon } from "#/components/icons";
 import { getBacklog } from "#/server/club";
@@ -9,8 +10,37 @@ export const Route = createFileRoute("/_authed/backlog")({
   component: BacklogPage,
 });
 
+// 0 = off, 1 = only games with this tag, 2 = hide games with this tag.
+type TagState = Record<string, number>;
+
+function matches(gameTags: string[], state: TagState): boolean {
+  return Object.entries(state).every(([tag, mode]) => {
+    const has = gameTags.includes(tag);
+    if (mode === 0) return true;
+    return mode === 1 ? has : !has;
+  });
+}
+
 function BacklogPage() {
   const games = Route.useLoaderData();
+  const [tagState, setTagState] = useState<TagState>({});
+
+  const tagCounts = new Map<string, number>();
+  for (const game of games)
+    for (const tag of game.tags)
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  const allTags = [...tagCounts.entries()].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  );
+  const filtering = Object.values(tagState).some((mode) => mode !== 0);
+  const visible = games.filter((game) => matches(game.tags, tagState));
+
+  function cycleTag(tag: string) {
+    setTagState((previous) => ({
+      ...previous,
+      [tag]: ((previous[tag] ?? 0) + 1) % 3,
+    }));
+  }
 
   return (
     <div>
@@ -37,15 +67,70 @@ function BacklogPage() {
         </div>
       </header>
 
-      <p className="mt-8 text-xs font-bold tracking-[0.14em] text-muted uppercase">
-        {games.length} {games.length === 1 ? "game" : "games"} waiting
+      {allTags.length > 0 ? (
+        <div className="mt-6 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[10px] font-bold tracking-[0.14em] text-muted uppercase">
+            Filter
+          </span>
+          {allTags.map(([tag, count]) => {
+            const mode = tagState[tag] ?? 0;
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => cycleTag(tag)}
+                title={`Click to keep only “${tag}”, click again to hide it`}
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                  mode === 1
+                    ? "border-forest bg-forest text-cream"
+                    : mode === 2
+                      ? "border-clay bg-clay/10 text-clay line-through"
+                      : "border-line bg-cream text-ink-soft hover:border-forest"
+                }`}
+              >
+                {tag} · {count}
+              </button>
+            );
+          })}
+          {filtering ? (
+            <button
+              type="button"
+              onClick={() => setTagState({})}
+              className="rounded-full px-2.5 py-1 text-[10px] font-bold text-muted underline-offset-2 hover:text-clay hover:underline"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <p className="mt-6 text-xs font-bold tracking-[0.14em] text-muted uppercase">
+        {filtering
+          ? `${visible.length} of ${games.length} ${games.length === 1 ? "game" : "games"}`
+          : `${games.length} ${games.length === 1 ? "game" : "games"} waiting`}
       </p>
 
-      {games.length > 0 ? (
+      {visible.length > 0 ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {games.map((game) => (
+          {visible.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
+        </div>
+      ) : filtering ? (
+        <div className="card mt-3 flex flex-col items-center border-dashed px-6 py-16 text-center">
+          <h2 className="display mt-4 text-3xl text-ink">
+            Nothing matches those tags.
+          </h2>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">
+            Loosen the filter or clear it to see the whole shelf.
+          </p>
+          <button
+            type="button"
+            onClick={() => setTagState({})}
+            className="btn-ghost mt-5"
+          >
+            Clear the filter
+          </button>
         </div>
       ) : (
         <div className="card mt-3 flex flex-col items-center border-dashed px-6 py-16 text-center">

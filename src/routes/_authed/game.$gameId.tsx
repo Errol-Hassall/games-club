@@ -68,6 +68,15 @@ function GamePage() {
           <h1 className="display mt-3 text-4xl text-ink sm:text-6xl">
             {data.game.title}
           </h1>
+          {data.game.tags.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {data.game.tags.map((tag) => (
+                <span key={tag} className="badge">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-muted">
             <span className="inline-flex items-center gap-1.5">
               <Icon name="gamepad" className="h-4 w-4 text-clay" />

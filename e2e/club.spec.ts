@@ -61,8 +61,10 @@ test("a member can join, suggest a game, vote and sign out", async ({ page }) =>
   await page.getByLabel("Game title *").fill("Tunic");
   await page.getByLabel("Console / platform *").fill("PC, Xbox");
   await page.getByLabel("Time to beat (hours)").fill("12");
+  await page.getByLabel("Tags").fill("puzzle, co-op");
   await page.getByRole("button", { name: "Add to the shelf" }).click();
   await expect(page).toHaveURL(/\/game\/\d+$/);
+  await expect(page.getByText("puzzle", { exact: true })).toBeVisible();
 
   const voteButton = page.locator("button[aria-pressed]").first();
   await expect(voteButton).toHaveAttribute("aria-pressed", "false");
@@ -71,6 +73,17 @@ test("a member can join, suggest a game, vote and sign out", async ({ page }) =>
 
   await visit(page, "/backlog");
   await expect(page.getByRole("heading", { name: "Tunic" })).toBeVisible();
+
+  // Tag filter: first click keeps only co-op games, second hides them.
+  const coOpChip = page.getByRole("button", { name: /^co-op · \d+$/ });
+  await expect(coOpChip).toBeVisible();
+  await coOpChip.click();
+  await expect(page.getByRole("heading", { name: "Tunic" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Baldur's Gate 3" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Celeste" })).not.toBeVisible();
+  await coOpChip.click();
+  await expect(page.getByRole("heading", { name: "Tunic" })).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: "Celeste" })).toBeVisible();
 
   await signOut(page);
 });

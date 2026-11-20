@@ -84,6 +84,18 @@ export function GameCard({ game }: { game: GameWithVotes }) {
           </h3>
           <p className="mt-0.5 truncate text-xs text-muted">{game.platform}</p>
         </Link>
+        {game.tags.length > 0 ? (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {game.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-ink/5 px-1.5 py-0.5 text-[9px] font-bold text-muted"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted">
             <Icon name="clock" className="h-3.5 w-3.5" />

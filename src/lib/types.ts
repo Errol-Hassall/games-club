@@ -13,6 +13,7 @@ export type Game = {
   coverUrl: string | null;
   playtimeHours: number | null;
   notes: string | null;
+  tags: string[];
   suggestedByName: string | null;
   createdAt: string;
 };
