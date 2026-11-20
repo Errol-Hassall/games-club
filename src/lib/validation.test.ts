@@ -1,0 +1,97 @@
+import { describe, expect, test } from "bun:test";
+import {
+  cleanCoverUrl,
+  cleanOptionalText,
+  cleanPlaytime,
+  cleanRating,
+  cleanText,
+  normalizeUsername,
+  pickRandom,
+  validMonth,
+} from "#/lib/validation";
+
+describe("text cleaning", () => {
+  test("trims and keeps useful text", () => {
+    expect(cleanText("  Hades  ", 120)).toBe("Hades");
+  });
+
+  test("rejects empty, wrong-typed and oversized text", () => {
+    expect(cleanText("   ", 120)).toBeNull();
+    expect(cleanText(42, 120)).toBeNull();
+    expect(cleanText("x".repeat(121), 120)).toBeNull();
+  });
+
+  test("allows optional text to be absent", () => {
+    expect(cleanOptionalText(null, 10)).toBeNull();
+    expect(cleanOptionalText("  note  ", 10)).toBe("note");
+    expect(cleanOptionalText("too long", 4)).toBeNull();
+  });
+});
+
+describe("usernames", () => {
+  test("normalises case and whitespace", () => {
+    expect(normalizeUsername("  Maya_1 ")).toBe("maya_1");
+  });
+
+  test("rejects invalid handles", () => {
+    expect(normalizeUsername("ab")).toBeNull();
+    expect(normalizeUsername("-maya")).toBeNull();
+    expect(normalizeUsername("maya chen")).toBeNull();
+    expect(normalizeUsername("maya!")).toBeNull();
+    expect(normalizeUsername("x".repeat(25))).toBeNull();
+    expect(normalizeUsername(undefined)).toBeNull();
+  });
+});
+
+describe("months and ratings", () => {
+  test("accepts only real month keys", () => {
+    expect(validMonth("2026-11")).toBe("2026-11");
+    expect(validMonth("2026-13")).toBeNull();
+    expect(validMonth("2026-00")).toBeNull();
+    expect(validMonth("November 2026")).toBeNull();
+  });
+
+  test("keeps ratings as whole stars", () => {
+    expect(cleanRating(5)).toBe(5);
+    expect(cleanRating("4")).toBe(4);
+    expect(cleanRating(0)).toBeNull();
+    expect(cleanRating(6)).toBeNull();
+    expect(cleanRating(4.5)).toBeNull();
+  });
+
+  test("validates playtime", () => {
+    expect(cleanPlaytime("12.5")).toBe(12.5);
+    expect(cleanPlaytime("")).toBeNull();
+    expect(cleanPlaytime(null)).toBeNull();
+    expect(cleanPlaytime(0)).toBeNull();
+    expect(cleanPlaytime(1001)).toBeNull();
+  });
+});
+
+describe("cover URLs", () => {
+  test("allows local paths and HTTP(S)", () => {
+    expect(cleanCoverUrl("/covers/hades.jpg")).toBe("/covers/hades.jpg");
+    expect(cleanCoverUrl("https://example.com/cover.jpg")).toBe(
+      "https://example.com/cover.jpg",
+    );
+  });
+
+  test("blocks unsafe schemes and protocol-relative URLs", () => {
+    expect(cleanCoverUrl("javascript:alert(1)")).toBeNull();
+    expect(cleanCoverUrl("//evil.example/cover.jpg")).toBeNull();
+    expect(cleanCoverUrl("data:image/png;base64,abc")).toBeNull();
+  });
+});
+
+describe("pickRandom", () => {
+  test("returns null for an empty list", () => {
+    expect(pickRandom([])).toBeNull();
+  });
+
+  test("uses the injected random source", () => {
+    expect(pickRandom(["a", "b", "c"], () => 0)).toBe("a");
+    expect(pickRandom(["a", "b", "c"], () => 0.5)).toBe("b");
+    expect(pickRandom(["a", "b", "c"], () => 0.999)).toBe("c");
+    expect(pickRandom(["a", "b", "c"], () => 1)).toBe("c");
+  });
+});
