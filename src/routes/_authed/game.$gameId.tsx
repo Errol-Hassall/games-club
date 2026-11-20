@@ -1,0 +1,220 @@
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { CoverArt } from "#/components/cover-art";
+import { VoteButton } from "#/components/game-card";
+import { Icon } from "#/components/icons";
+import { AverageRating, RatingStars } from "#/components/rating";
+import { formatDate, formatMonth, formatPlaytime } from "#/lib/dates";
+import { assignGame, getGame } from "#/server/club";
+
+export const Route = createFileRoute("/_authed/game/$gameId")({
+  head: () => ({ meta: [{ title: "Game · Games Club" }] }),
+  loader: ({ params }) => getGame({ data: { gameId: Number(params.gameId) } }),
+  component: GamePage,
+});
+
+function GamePage() {
+  const data = Route.useLoaderData();
+  const { user } = Route.useRouteContext();
+
+  if (!data) {
+    return (
+      <div className="card border-dashed p-12 text-center">
+        <h1 className="display text-3xl text-ink">
+          That game is not on the shelf.
+        </h1>
+        <Link to="/backlog" className="btn-primary mt-5">
+          Back to the backlog
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Link
+        to="/backlog"
+        className="inline-flex items-center gap-1 text-xs font-bold text-muted hover:text-clay"
+      >
+        <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" />
+        The backlog
+      </Link>
+
+      <div className="mt-5 grid gap-8 md:grid-cols-[240px_minmax(0,1fr)] lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div>
+          <CoverArt
+            title={data.game.title}
+            coverUrl={data.game.coverUrl}
+            className="aspect-[3/4] w-full rounded-2xl shadow-[0_24px_50px_-26px_rgba(23,21,15,0.55)]"
+            eager
+          />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {data.assignment ? (
+              <span className="badge-clay">
+                {formatMonth(data.assignment.month)}
+              </span>
+            ) : (
+              <span className="badge">On the shelf</span>
+            )}
+            {data.game.suggestedByName ? (
+              <span className="text-[11px] font-semibold text-muted">
+                Suggested by {data.game.suggestedByName}
+              </span>
+            ) : null}
+          </div>
+          <h1 className="display mt-3 text-4xl text-ink sm:text-6xl">
+            {data.game.title}
+          </h1>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="gamepad" className="h-4 w-4 text-clay" />
+              {data.game.platform}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="clock" className="h-4 w-4 text-clay" />
+              {formatPlaytime(data.game.playtimeHours)}
+            </span>
+            {data.assignment ? (
+              <AverageRating
+                rating={
+                  data.reviews.length > 0
+                    ? data.reviews.reduce(
+                        (sum, review) => sum + review.rating,
+                        0,
+                      ) / data.reviews.length
+                    : null
+                }
+                count={data.assignment.reviewCount}
+              />
+            ) : null}
+          </div>
+
+          {data.game.notes ? (
+            <p className="mt-5 max-w-xl border-l-2 border-gold pl-4 text-sm leading-relaxed text-ink-soft italic">
+              {data.game.notes}
+            </p>
+          ) : null}
+
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            {data.assignment ? (
+              <Link
+                to="/month/$month"
+                params={{ month: data.assignment.month }}
+                className="btn-primary"
+              >
+                Open {formatMonth(data.assignment.month)}
+                <Icon name="arrow" className="h-4 w-4" />
+              </Link>
+            ) : (
+              <>
+                <VoteButton
+                  gameId={data.game.id}
+                  voteCount={data.voteCount}
+                  hasVoted={data.hasVoted}
+                />
+                {user?.isAdmin ? (
+                  <AssignPanel
+                    gameId={data.game.id}
+                    openMonth={data.openMonth}
+                  />
+                ) : (
+                  <span className="text-xs text-muted">
+                    An admin can give this a month once the club has voted.
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {data.assignment && data.reviews.length > 0 ? (
+            <section className="mt-10">
+              <h2 className="display text-3xl text-ink">What the club said</h2>
+              <ul className="mt-4 space-y-4">
+                {data.reviews.slice(0, 3).map((review) => (
+                  <li key={review.id} className="card p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-ink">
+                        {review.authorName}
+                      </p>
+                      <RatingStars rating={review.rating} size="h-3.5 w-3.5" />
+                    </div>
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft">
+                      {review.body}
+                    </p>
+                    <p className="mt-2 text-[10px] text-muted">
+                      {formatDate(review.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/month/$month"
+                params={{ month: data.assignment.month }}
+                className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-forest hover:text-clay"
+              >
+                Read all {data.assignment.reviewCount} reviews{" "}
+                <Icon name="arrow" className="h-3.5 w-3.5" />
+              </Link>
+            </section>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssignPanel({
+  gameId,
+  openMonth,
+}: {
+  gameId: number;
+  openMonth: string;
+}) {
+  const router = useRouter();
+  const [month, setMonth] = useState(openMonth);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleAssign(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
+    setError(null);
+    try {
+      const result = await assignGame({ data: { gameId, month } });
+      if ("error" in result) {
+        setError(result.error ?? "Could not assign that game.");
+        return;
+      }
+      await router.navigate({ to: "/month/$month", params: { month } });
+      await router.invalidate();
+    } catch {
+      setError("Could not assign that game.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">
+      <label>
+        <span className="label">Admin: give it a month</span>
+        <input
+          type="month"
+          value={month}
+          onChange={(event) => setMonth(event.target.value)}
+          className="input py-2"
+          required
+        />
+      </label>
+      <button type="submit" disabled={pending} className="btn-dark btn-sm">
+        {pending ? "Assigning…" : "Assign"}
+      </button>
+      {error ? (
+        <p className="w-full text-xs font-semibold text-clay">{error}</p>
+      ) : null}
+    </form>
+  );
+}
