@@ -54,12 +54,16 @@ export type DashboardData = {
   stats: { members: number; games: number; played: number; votes: number };
 };
 
+export type GameFlagKind = "played" | "owned";
+
 export type GameDetail = {
   game: Game;
   assignment: { id: number; month: string; reviewCount: number } | null;
   reviews: Review[];
   voteCount: number;
   hasVoted: boolean;
+  flags: Array<{ kind: GameFlagKind; names: string[] }>;
+  myFlags: Record<GameFlagKind, boolean>;
   openMonth: string;
 };
 

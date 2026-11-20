@@ -5,7 +5,8 @@ import { VoteButton } from "#/components/game-card";
 import { Icon } from "#/components/icons";
 import { AverageRating, RatingStars } from "#/components/rating";
 import { formatDate, formatMonth, formatPlaytime } from "#/lib/dates";
-import { assignGame, getGame } from "#/server/club";
+import type { GameFlagKind } from "#/lib/types";
+import { assignGame, getGame, toggleGameFlag } from "#/server/club";
 
 export const Route = createFileRoute("/_authed/game/$gameId")({
   head: () => ({ meta: [{ title: "Game · Games Club" }] }),
@@ -138,6 +139,42 @@ function GamePage() {
             )}
           </div>
 
+          <section aria-label="Club status" className="card mt-7 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xs font-bold tracking-[0.14em] text-muted uppercase">
+                Who has this one?
+              </h2>
+              <div className="flex flex-wrap gap-4">
+                <FlagToggle
+                  gameId={data.game.id}
+                  kind="played"
+                  label="I've played it"
+                  checked={data.myFlags.played}
+                />
+                <FlagToggle
+                  gameId={data.game.id}
+                  kind="owned"
+                  label="I own it"
+                  checked={data.myFlags.owned}
+                />
+              </div>
+            </div>
+            <div className="mt-3 space-y-1 text-xs">
+              {data.flags.map((flag) => (
+                <p key={flag.kind}>
+                  <span className="font-bold text-ink-soft">
+                    {flag.kind === "played" ? "Played by" : "Owned by"}:{" "}
+                  </span>
+                  <span className="text-muted">
+                    {flag.names.length > 0
+                      ? flag.names.join(", ")
+                      : "nobody yet"}
+                  </span>
+                </p>
+              ))}
+            </div>
+          </section>
+
           {data.assignment && data.reviews.length > 0 ? (
             <section className="mt-10">
               <h2 className="display text-3xl text-ink">What the club said</h2>
@@ -172,6 +209,44 @@ function GamePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function FlagToggle({
+  gameId,
+  kind,
+  label,
+  checked,
+}: {
+  gameId: number;
+  kind: GameFlagKind;
+  label: string;
+  checked: boolean;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  async function handleToggle() {
+    setPending(true);
+    try {
+      await toggleGameFlag({ data: { gameId, kind } });
+      await router.invalidate();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-ink-soft">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={handleToggle}
+        disabled={pending}
+        className="h-3.5 w-3.5 accent-[#234435]"
+      />
+      {label}
+    </label>
   );
 }
 

@@ -66,6 +66,16 @@ test("a member can join, suggest a game, vote and sign out", async ({ page }) =>
   await expect(page).toHaveURL(/\/game\/\d+$/);
   await expect(page.getByText("puzzle", { exact: true })).toBeVisible();
 
+  // Club status flags: mark it played, see the name, then unmark.
+  const status = page.getByRole("region", { name: "Club status" });
+  const playedFlag = status.getByLabel("I've played it");
+  await playedFlag.click();
+  await expect(playedFlag).toBeChecked();
+  await expect(status.getByText("Played by: Maya Test")).toBeVisible();
+  await playedFlag.click();
+  await expect(playedFlag).not.toBeChecked();
+  await expect(status.getByText("Played by: nobody yet")).toBeVisible();
+
   const voteButton = page.locator("button[aria-pressed]").first();
   await expect(voteButton).toHaveAttribute("aria-pressed", "false");
   await voteButton.click();

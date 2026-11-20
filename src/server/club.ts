@@ -295,6 +295,16 @@ export const getGame = createServerFn({ method: "GET" })
       )
       .get(user.id, data.gameId) as { count: number; mine: number };
 
+    const flagRows = db
+      .query(
+        `SELECT gf.kind, gf.user_id, u.name
+         FROM game_flags gf
+         JOIN users u ON u.id = gf.user_id
+         WHERE gf.game_id = ?
+         ORDER BY gf.kind, u.name`,
+      )
+      .all(data.gameId) as Array<{ kind: string; user_id: number; name: string }>;
+
     return {
       game: mapGame(game),
       assignment: assignment
@@ -307,8 +317,59 @@ export const getGame = createServerFn({ method: "GET" })
       reviews,
       voteCount: votes.count,
       hasVoted: Boolean(votes.mine),
+      flags: (["played", "owned"] as const).map((kind) => ({
+        kind,
+        names: flagRows
+          .filter((row) => row.kind === kind)
+          .map((row) => row.name),
+      })),
+      myFlags: {
+        played: flagRows.some(
+          (row) => row.kind === "played" && row.user_id === user.id,
+        ),
+        owned: flagRows.some(
+          (row) => row.kind === "owned" && row.user_id === user.id,
+        ),
+      },
       openMonth: openPickMonth(),
     };
+  });
+
+export const toggleGameFlag = createServerFn({ method: "POST" })
+  .validator((input: unknown) => {
+    const data = (input ?? {}) as Record<string, unknown>;
+    return {
+      gameId: Number(data.gameId),
+      kind: typeof data.kind === "string" ? data.kind : "",
+    };
+  })
+  .handler(async ({ data }) => {
+    const user = requireUser();
+    if (data.kind !== "played" && data.kind !== "owned")
+      return { error: "That flag does not exist." };
+    if (!Number.isInteger(data.gameId))
+      return { error: "That game does not exist." };
+
+    const db = getDb();
+    if (!db.query("SELECT id FROM games WHERE id = ?").get(data.gameId))
+      return { error: "That game does not exist." };
+
+    const existing = db
+      .query(
+        "SELECT 1 FROM game_flags WHERE game_id = ? AND user_id = ? AND kind = ?",
+      )
+      .get(data.gameId, user.id, data.kind);
+    if (existing) {
+      db.query(
+        "DELETE FROM game_flags WHERE game_id = ? AND user_id = ? AND kind = ?",
+      ).run(data.gameId, user.id, data.kind);
+      return { ok: true as const, flagged: false };
+    }
+
+    db.query(
+      "INSERT INTO game_flags (game_id, user_id, kind, created_at) VALUES (?, ?, ?, ?)",
+    ).run(data.gameId, user.id, data.kind, new Date().toISOString());
+    return { ok: true as const, flagged: true };
   });
 
 export const getMonth = createServerFn({ method: "GET" })

@@ -56,6 +56,14 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE(assignment_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS game_flags (
+  game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('played', 'owned')),
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (game_id, user_id, kind)
+);
+
 CREATE TABLE IF NOT EXISTS votes (
   game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
