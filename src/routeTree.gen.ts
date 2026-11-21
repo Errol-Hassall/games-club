@@ -19,6 +19,7 @@ import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedBacklogRouteImport } from './routes/_authed/backlog'
 import { Route as AuthedPickRouteImport } from './routes/_authed/pick'
 import { Route as AuthedPlayedRouteImport } from './routes/_authed/played'
+import { Route as AuthedStatsRouteImport } from './routes/_authed/stats'
 import { Route as AuthedSuggestRouteImport } from './routes/_authed/suggest'
 import { Route as AuthedGameGameIdRouteImport } from './routes/_authed/game.$gameId'
 import { Route as AuthedMonthMonthRouteImport } from './routes/_authed/month.$month'
@@ -71,6 +72,11 @@ const AuthedPlayedRoute = AuthedPlayedRouteImport.update({
   path: '/played',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedStatsRoute = AuthedStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedSuggestRoute = AuthedSuggestRouteImport.update({
   id: '/suggest',
   path: '/suggest',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/backlog': typeof AuthedBacklogRoute
   '/pick': typeof AuthedPickRoute
   '/played': typeof AuthedPlayedRoute
+  '/stats': typeof AuthedStatsRoute
   '/suggest': typeof AuthedSuggestRoute
   '/game/$gameId': typeof AuthedGameGameIdRoute
   '/month/$month': typeof AuthedMonthMonthRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/backlog': typeof AuthedBacklogRoute
   '/pick': typeof AuthedPickRoute
   '/played': typeof AuthedPlayedRoute
+  '/stats': typeof AuthedStatsRoute
   '/suggest': typeof AuthedSuggestRoute
   '/game/$gameId': typeof AuthedGameGameIdRoute
   '/month/$month': typeof AuthedMonthMonthRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/_authed/backlog': typeof AuthedBacklogRoute
   '/_authed/pick': typeof AuthedPickRoute
   '/_authed/played': typeof AuthedPlayedRoute
+  '/_authed/stats': typeof AuthedStatsRoute
   '/_authed/suggest': typeof AuthedSuggestRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/game/$gameId': typeof AuthedGameGameIdRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/backlog'
     | '/pick'
     | '/played'
+    | '/stats'
     | '/suggest'
     | '/game/$gameId'
     | '/month/$month'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/backlog'
     | '/pick'
     | '/played'
+    | '/stats'
     | '/suggest'
     | '/game/$gameId'
     | '/month/$month'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/_authed/backlog'
     | '/_authed/pick'
     | '/_authed/played'
+    | '/_authed/stats'
     | '/_authed/suggest'
     | '/_authed/'
     | '/_authed/game/$gameId'
@@ -250,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedPlayedRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/stats': {
+      id: '/_authed/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof AuthedStatsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/suggest': {
       id: '/_authed/suggest'
       path: '/suggest'
@@ -292,6 +311,7 @@ interface AuthedRouteChildren {
   AuthedBacklogRoute: typeof AuthedBacklogRoute
   AuthedPickRoute: typeof AuthedPickRoute
   AuthedPlayedRoute: typeof AuthedPlayedRoute
+  AuthedStatsRoute: typeof AuthedStatsRoute
   AuthedSuggestRoute: typeof AuthedSuggestRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedGameGameIdRoute: typeof AuthedGameGameIdRoute
@@ -304,6 +324,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedBacklogRoute: AuthedBacklogRoute,
   AuthedPickRoute: AuthedPickRoute,
   AuthedPlayedRoute: AuthedPlayedRoute,
+  AuthedStatsRoute: AuthedStatsRoute,
   AuthedSuggestRoute: AuthedSuggestRoute,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedGameGameIdRoute: AuthedGameGameIdRoute,

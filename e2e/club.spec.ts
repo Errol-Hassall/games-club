@@ -161,3 +161,20 @@ test("admin password reset forces a new password on next sign in", async ({ page
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Good to see you");
 });
+
+test("the stats page summarises the club", async ({ page }) => {
+  await login(page, ADMIN_USERNAME, ADMIN_PASSWORD);
+  await expect(page).toHaveURL(/\/$/);
+  await visit(page, "/stats");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "Club stats",
+  );
+  await expect(page.getByText("Reviews written")).toBeVisible();
+  // A genre from the seeded played months.
+  await expect(page.getByText("rpg", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Best-rated months" }),
+  ).toBeVisible();
+  // A member who has reviewed in the seed data.
+  await expect(page.getByText("Maya Chen", { exact: true })).toBeVisible();
+});

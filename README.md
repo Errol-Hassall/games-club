@@ -86,11 +86,17 @@ Every member can change their own password at any time (and must, right after an
 
 ![Account page](docs/screenshots/13-account.png)
 
-### 14. Mobile
+### 14. Stats
+
+Every member can see the club's numbers: most-played genres, best-rated months, whose suggestions age best, and each reviewer's average. Just SELECTs over the existing tables — no new data anywhere.
+
+![Stats overview](docs/screenshots/14-stats.png)
+
+### 15. Mobile
 
 The whole app is responsive; on phones the sidebar collapses into a top bar and pill navigation.
 
-![Mobile dashboard](docs/screenshots/14-mobile-dashboard.png)
+![Mobile dashboard](docs/screenshots/15-mobile-dashboard.png)
 
 ---
 

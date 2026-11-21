@@ -82,3 +82,14 @@ export type PickData = {
   current: Assignment | null;
   nextMonth: string;
 };
+
+export type StatsData = {
+  members: number;
+  games: number;
+  monthsPlanned: number;
+  reviews: number;
+  topGenres: Array<{ tag: string; count: number }>;
+  bestMonths: Array<{ month: string; average: number; count: number }>;
+  topSuggesters: Array<{ name: string; average: number; games: number }>;
+  reviewerAverages: Array<{ name: string; average: number; count: number }>;
+};

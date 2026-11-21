@@ -145,10 +145,14 @@ async function main() {
     await page.goto(`${BASE}/account`);
     await shot("13-account");
 
-    // 14. Mobile view of the dashboard (same session, narrow viewport).
+    // 14. Stats overview.
+    await page.goto(`${BASE}/stats`);
+    await shot("14-stats", true);
+
+    // 15. Mobile view of the dashboard (same session, narrow viewport).
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${BASE}/`);
-    await page.screenshot({ path: `${OUT_DIR}14-mobile-dashboard.png` });
+    await page.screenshot({ path: `${OUT_DIR}15-mobile-dashboard.png` });
 
     console.log(`Screenshots written to ${OUT_DIR}`);
   } finally {

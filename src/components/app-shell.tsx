@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { to: "/backlog", label: "Backlog", icon: "shelf" },
   { to: "/pick", label: "Pick a game", icon: "dice" },
   { to: "/played", label: "Played", icon: "book" },
+  { to: "/stats", label: "Stats", icon: "chart" },
   { to: "/suggest", label: "Suggest", icon: "plus" },
   { to: "/admin", label: "Admin", icon: "shield", adminOnly: true },
 ];

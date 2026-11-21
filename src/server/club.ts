@@ -7,6 +7,7 @@ import {
   monthKey,
   nextMonth,
 } from "#/lib/dates";
+import { topGenres } from "#/lib/stats";
 import type {
   Assignment,
   DashboardData,
@@ -17,6 +18,7 @@ import type {
   PickData,
   PlayedMonth,
   Review,
+  StatsData,
 } from "#/lib/types";
 import {
   cleanCoverUrl,
@@ -259,6 +261,80 @@ export const getPickData = createServerFn({ method: "GET" }).handler(
       backlog: loadBacklog(user.id),
       current: loadAssignment(monthKey(), user.id),
       nextMonth: openPickMonth(),
+    };
+  },
+);
+
+export const getStats = createServerFn({ method: "GET" }).handler(
+  (): StatsData => {
+    requireUser();
+    const db = getDb();
+
+    const headline = db
+      .query(
+        `SELECT (SELECT COUNT(*) FROM users) AS members,
+                (SELECT COUNT(*) FROM games) AS games,
+                (SELECT COUNT(DISTINCT month) FROM assignments) AS months_planned,
+                (SELECT COUNT(*) FROM reviews) AS reviews`,
+      )
+      .get() as {
+      members: number;
+      games: number;
+      months_planned: number;
+      reviews: number;
+    };
+
+    // "Played" genres: only games that have a month assigned to them.
+    const genreRows = db
+      .query(
+        `SELECT g.genres FROM games g
+         WHERE EXISTS (SELECT 1 FROM assignments a WHERE a.game_id = g.id)`,
+      )
+      .all() as Array<{ genres: string | null }>;
+
+    const bestMonths = db
+      .query(
+        `SELECT a.month AS month, AVG(r.rating) AS average, COUNT(r.id) AS count
+         FROM assignments a
+         JOIN reviews r ON r.assignment_id = a.id
+         GROUP BY a.month
+         ORDER BY average DESC, count DESC
+         LIMIT 5`,
+      )
+      .all() as Array<{ month: string; average: number; count: number }>;
+
+    const topSuggesters = db
+      .query(
+        `SELECT u.name AS name, AVG(r.rating) AS average, COUNT(DISTINCT g.id) AS games
+         FROM users u
+         JOIN games g ON g.suggested_by = u.id
+         JOIN assignments a ON a.game_id = g.id
+         JOIN reviews r ON r.assignment_id = a.id
+         GROUP BY u.id
+         ORDER BY average DESC, games DESC
+         LIMIT 5`,
+      )
+      .all() as Array<{ name: string; average: number; games: number }>;
+
+    const reviewerAverages = db
+      .query(
+        `SELECT u.name AS name, AVG(r.rating) AS average, COUNT(*) AS count
+         FROM users u
+         JOIN reviews r ON r.user_id = u.id
+         GROUP BY u.id
+         ORDER BY count DESC, average DESC`,
+      )
+      .all() as Array<{ name: string; average: number; count: number }>;
+
+    return {
+      members: headline.members,
+      games: headline.games,
+      monthsPlanned: headline.months_planned,
+      reviews: headline.reviews,
+      topGenres: topGenres(genreRows.map((row) => row.genres)),
+      bestMonths,
+      topSuggesters,
+      reviewerAverages,
     };
   },
 );
