@@ -147,11 +147,20 @@ test("an admin can open a past month and post a review", async ({ page }) => {
   await page
     .getByPlaceholder("What worked, what did not, who should play it next…")
     .fill("E2E review: the farm life remains undefeated.");
+  await page.getByLabel("Pros").fill("E2E pros: cozy and replayable.");
+  await page.getByLabel("Cons").fill("E2E cons: fishing is a chore.");
   await page.getByRole("button", { name: "Post review" }).click();
 
   await expect(page.getByText("Saved")).toBeVisible();
   await expect(
     page.getByRole("list").getByText("E2E review: the farm life remains undefeated."),
+  ).toBeVisible();
+  // The pros and cons were saved and are shown on the review card.
+  await expect(
+    page.getByRole("list").getByText("E2E pros: cozy and replayable."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("list").getByText("E2E cons: fishing is a chore."),
   ).toBeVisible();
 
   // Admins can correct a past month's game details from its page.

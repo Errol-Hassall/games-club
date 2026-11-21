@@ -61,6 +61,8 @@ type ReviewRow = {
   id: number;
   rating: number;
   body: string;
+  pros: string | null;
+  cons: string | null;
   created_at: string;
   author_name: string;
   author_username: string;
@@ -97,6 +99,8 @@ function mapReview(row: ReviewRow): Review {
     id: row.id,
     rating: row.rating,
     body: row.body,
+    pros: row.pros,
+    cons: row.cons,
     createdAt: row.created_at,
     authorName: row.author_name,
     authorUsername: row.author_username,
@@ -106,7 +110,7 @@ function mapReview(row: ReviewRow): Review {
 function loadReviews(assignmentId: number): Review[] {
   const rows = getDb()
     .query(
-      `SELECT r.id, r.rating, r.body, r.created_at, u.name AS author_name, u.username AS author_username
+      `SELECT r.id, r.rating, r.body, r.pros, r.cons, r.created_at, u.name AS author_name, u.username AS author_username
        FROM reviews r
        JOIN users u ON u.id = r.user_id
        WHERE r.assignment_id = ?
@@ -765,6 +769,8 @@ export const addReview = createServerFn({ method: "POST" })
       assignmentId: Number(data.assignmentId),
       rating: data.rating,
       body: typeof data.body === "string" ? data.body : "",
+      pros: typeof data.pros === "string" ? data.pros : "",
+      cons: typeof data.cons === "string" ? data.cons : "",
     };
   })
   .handler(async ({ data }) => {
@@ -773,6 +779,8 @@ export const addReview = createServerFn({ method: "POST" })
       return { error: "That month does not exist." };
     const rating = cleanRating(data.rating);
     const body = cleanText(data.body, 2000);
+    const pros = cleanOptionalText(data.pros, 500);
+    const cons = cleanOptionalText(data.cons, 500);
     if (!rating) return { error: "Choose a rating from 1 to 5." };
     if (!body || body.length < 3)
       return { error: "Write a few thoughts about the game." };
@@ -789,11 +797,21 @@ export const addReview = createServerFn({ method: "POST" })
     }
 
     db.query(
-      `INSERT INTO reviews (assignment_id, user_id, rating, body, created_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO reviews (assignment_id, user_id, rating, body, pros, cons, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(assignment_id, user_id)
-       DO UPDATE SET rating = excluded.rating, body = excluded.body, created_at = excluded.created_at`,
-    ).run(assignment.id, user.id, rating, body, new Date().toISOString());
+       DO UPDATE SET rating = excluded.rating, body = excluded.body,
+                     pros = excluded.pros, cons = excluded.cons,
+                     created_at = excluded.created_at`,
+    ).run(
+      assignment.id,
+      user.id,
+      rating,
+      body,
+      pros,
+      cons,
+      new Date().toISOString(),
+    );
 
     return { ok: true as const };
   });

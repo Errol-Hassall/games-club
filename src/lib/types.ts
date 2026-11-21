@@ -29,6 +29,8 @@ export type Review = {
   id: number;
   rating: number;
   body: string;
+  pros: string | null;
+  cons: string | null;
   createdAt: string;
   authorName: string;
   authorUsername: string;

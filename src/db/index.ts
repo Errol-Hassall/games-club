@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS reviews (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   body TEXT NOT NULL,
+  pros TEXT,
+  cons TEXT,
   created_at TEXT NOT NULL,
   UNIQUE(assignment_id, user_id)
 );
@@ -84,6 +86,8 @@ const COLUMN_UPGRADES: Array<[table: string, column: string, definition: string]
   ["games", "genres", "TEXT"],
   ["games", "description", "TEXT"],
   ["games", "metascore", "INTEGER"],
+  ["reviews", "pros", "TEXT"],
+  ["reviews", "cons", "TEXT"],
 ];
 
 function migrateColumns(db: Database): void {
@@ -154,7 +158,13 @@ type SeedGame = {
   genres?: string[];
   month?: number;
   votes?: number[];
-  reviews?: Array<{ user: number; rating: number; body: string }>;
+  reviews?: Array<{
+    user: number;
+    rating: number;
+    body: string;
+    pros?: string;
+    cons?: string;
+  }>;
 };
 
 const SEED_USERS = [
@@ -203,6 +213,8 @@ const SEED_GAMES: SeedGame[] = [
         user: 0,
         rating: 5,
         body: "I lost an entire weekend to the farm and regret nothing. The pacing is gentle but there is always one more thing to do before bed. The multiplayer farm with Tom turned into a nightly ritual.",
+        pros: "Gentle pacing, gorgeous soundtrack, and a co-op farm that became a nightly ritual.",
+        cons: "The first hours are a long tutorial, and fishing never stops feeling like a chore.",
       },
       {
         user: 1,
@@ -360,12 +372,14 @@ function seedDemo(db: Database): void {
         if (!userId) continue;
         const day = 26 + (review.user % 3);
         db.query(
-          "INSERT INTO reviews (assignment_id, user_id, rating, body, created_at) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO reviews (assignment_id, user_id, rating, body, pros, cons, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         ).run(
           assignmentId,
           userId,
           review.rating,
           review.body,
+          review.pros ?? null,
+          review.cons ?? null,
           `${month}-${day}T19:00:00.000Z`,
         );
       }

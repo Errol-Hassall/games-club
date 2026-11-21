@@ -228,6 +228,22 @@ function GamePage() {
                     <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft">
                       {review.body}
                     </p>
+                    {review.pros || review.cons ? (
+                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                        {review.pros ? (
+                          <p className="text-[11px] leading-relaxed text-forest">
+                            <span className="font-bold">Pros · </span>
+                            {review.pros}
+                          </p>
+                        ) : null}
+                        {review.cons ? (
+                          <p className="text-[11px] leading-relaxed text-clay">
+                            <span className="font-bold">Cons · </span>
+                            {review.cons}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <p className="mt-2 text-[10px] text-muted">
                       {formatDate(review.createdAt)}
                     </p>

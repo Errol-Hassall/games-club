@@ -95,6 +95,8 @@ function MonthPage() {
               <ReviewForm
                 assignmentId={data.id}
                 initialBody={data.myReview?.body ?? ""}
+                initialPros={data.myReview?.pros ?? ""}
+                initialCons={data.myReview?.cons ?? ""}
                 initialRating={data.myReview?.rating ?? 0}
                 onSaved={() => router.invalidate()}
               />
@@ -133,6 +135,22 @@ function MonthPage() {
                         <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-ink-soft">
                           {review.body}
                         </p>
+                        {review.pros || review.cons ? (
+                          <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                            {review.pros ? (
+                              <p className="text-xs leading-relaxed text-forest">
+                                <span className="font-bold">Pros · </span>
+                                {review.pros}
+                              </p>
+                            ) : null}
+                            {review.cons ? (
+                              <p className="text-xs leading-relaxed text-clay">
+                                <span className="font-bold">Cons · </span>
+                                {review.cons}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </li>
@@ -179,16 +197,22 @@ function MonthPage() {
 function ReviewForm({
   assignmentId,
   initialBody,
+  initialPros,
+  initialCons,
   initialRating,
   onSaved,
 }: {
   assignmentId: number;
   initialBody: string;
+  initialPros: string;
+  initialCons: string;
   initialRating: number;
   onSaved: () => void;
 }) {
   const [rating, setRating] = useState(initialRating);
   const [body, setBody] = useState(initialBody);
+  const [pros, setPros] = useState(initialPros);
+  const [cons, setCons] = useState(initialCons);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
@@ -199,7 +223,9 @@ function ReviewForm({
     setSaved(false);
     setPending(true);
     try {
-      const result = await addReview({ data: { assignmentId, rating, body } });
+      const result = await addReview({
+        data: { assignmentId, rating, body, pros, cons },
+      });
       if ("error" in result) {
         setError(result.error ?? "Could not save your review.");
         return;
@@ -260,6 +286,30 @@ function ReviewForm({
           className="input resize-y"
         />
       </label>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">Pros</span>
+          <textarea
+            value={pros}
+            onChange={(event) => setPros(event.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="What did the club love?"
+            className="input resize-y"
+          />
+        </label>
+        <label className="block">
+          <span className="label">Cons</span>
+          <textarea
+            value={cons}
+            onChange={(event) => setCons(event.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="What fell short?"
+            className="input resize-y"
+          />
+        </label>
+      </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-[11px] text-muted">{body.length}/2000</p>
         <div className="flex items-center gap-3">
