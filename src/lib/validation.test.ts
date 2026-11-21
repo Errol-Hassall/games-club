@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { addMonths, monthKey } from "#/lib/dates";
 import {
   cleanCoverUrl,
   cleanMetascore,
   cleanOptionalText,
   cleanPlaytime,
+  filterRecentlyPlayed,
   cleanRating,
   cleanTags,
   cleanText,
@@ -11,6 +13,7 @@ import {
   normalizeUsername,
   parseTags,
   pickRandom,
+  pickWeighted,
   validMonth,
 } from "#/lib/validation";
 
@@ -160,5 +163,45 @@ describe("pickRandom", () => {
     expect(pickRandom(["a", "b", "c"], () => 0.5)).toBe("b");
     expect(pickRandom(["a", "b", "c"], () => 0.999)).toBe("c");
     expect(pickRandom(["a", "b", "c"], () => 1)).toBe("c");
+  });
+});
+
+describe("pickWeighted", () => {
+  test("returns null when there is nothing to draw", () => {
+    expect(pickWeighted([], [])).toBeNull();
+    expect(pickWeighted(["a"], [0], () => 0.5)).toBeNull();
+  });
+
+  test("picks in proportion to the weights", () => {
+    const items = ["a", "b", "c"];
+    const weights = [2, 3, 5]; // total 10
+    expect(pickWeighted(items, weights, () => 0)).toBe("a");
+    expect(pickWeighted(items, weights, () => 0.19)).toBe("a");
+    expect(pickWeighted(items, weights, () => 0.4)).toBe("b");
+    expect(pickWeighted(items, weights, () => 0.99)).toBe("c");
+  });
+});
+
+describe("filterRecentlyPlayed", () => {
+  const backlog = [{ title: "Hades" }, { title: "Old Game" }];
+  const played = [
+    { title: "hades", month: addMonths(monthKey(), -1) },
+    { title: "Ancient One", month: "2020-01" },
+  ];
+
+  test("keeps everything when the window is off", () => {
+    expect(filterRecentlyPlayed(backlog, played, 0)).toEqual(backlog);
+  });
+
+  test("drops titles played inside the window, case-insensitively", () => {
+    expect(filterRecentlyPlayed(backlog, played, 3)).toEqual([
+      { title: "Old Game" },
+    ]);
+  });
+
+  test("keeps titles only played outside the window", () => {
+    expect(
+      filterRecentlyPlayed([{ title: "Ancient One" }], played, 3),
+    ).toEqual([{ title: "Ancient One" }]);
   });
 });

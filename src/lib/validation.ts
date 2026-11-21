@@ -1,3 +1,5 @@
+import { addMonths, monthKey } from "#/lib/dates";
+
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,23}$/;
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -142,4 +144,38 @@ export function pickRandom<T>(
     Math.max(0, Math.floor(random() * items.length)),
   );
   return items[index] ?? null;
+}
+
+// Weighted draw: an item's chance is proportional to its weight.
+export function pickWeighted<T>(
+  items: readonly T[],
+  weights: readonly number[],
+  random: () => number = Math.random,
+): T | null {
+  const total = weights.reduce((sum, weight) => sum + Math.max(0, weight), 0);
+  if (items.length === 0 || total <= 0) return null;
+  let roll = random() * total;
+  for (let index = 0; index < items.length; index += 1) {
+    roll -= Math.max(0, weights[index] ?? 0);
+    if (roll < 0) return items[index] ?? null;
+  }
+  return items[items.length - 1] ?? null;
+}
+
+// Drops backlog games whose title matches a played game within the last
+// `months` months. shortcut: case-insensitive exact title match — renaming a
+// game breaks the match, so upgrade to id-based matching if renames matter.
+export function filterRecentlyPlayed<T extends { title: string }>(
+  backlog: readonly T[],
+  played: readonly { title: string; month: string }[],
+  months: number,
+): T[] {
+  if (months <= 0) return [...backlog];
+  const cutoff = addMonths(monthKey(), -months);
+  const excluded = new Set(
+    played
+      .filter((entry) => entry.month >= cutoff)
+      .map((entry) => entry.title.toLowerCase()),
+  );
+  return backlog.filter((game) => !excluded.has(game.title.toLowerCase()));
 }

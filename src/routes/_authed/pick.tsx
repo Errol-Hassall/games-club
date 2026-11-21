@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { CoverArt } from "#/components/cover-art";
 import { VoteButton } from "#/components/game-card";
 import { Icon } from "#/components/icons";
 import { Wheel } from "#/components/wheel";
 import { formatMonth, formatPlaytime } from "#/lib/dates";
+import { filterRecentlyPlayed } from "#/lib/validation";
 import { getPickData } from "#/server/club";
 
 export const Route = createFileRoute("/_authed/pick")({
@@ -15,7 +17,14 @@ export const Route = createFileRoute("/_authed/pick")({
 function PickPage() {
   const data = Route.useLoaderData();
   const { user } = Route.useRouteContext();
+  const [weightByVotes, setWeightByVotes] = useState(false);
+  const [skipMonths, setSkipMonths] = useState(0);
   const maxVotes = Math.max(1, ...data.backlog.map((game) => game.voteCount));
+  const hatGames = filterRecentlyPlayed(
+    data.backlog,
+    data.recentlyPlayed,
+    skipMonths,
+  );
 
   return (
     <div>
@@ -35,10 +44,35 @@ function PickPage() {
       </header>
 
       <section className="card mt-8 p-5 sm:p-8">
+        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line pb-4">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-ink-soft">
+            <input
+              type="checkbox"
+              checked={weightByVotes}
+              onChange={(event) => setWeightByVotes(event.target.checked)}
+              className="h-3.5 w-3.5 accent-[#234435]"
+            />
+            Weight by votes
+          </label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+            Skip recently played
+            <select
+              value={skipMonths}
+              onChange={(event) => setSkipMonths(Number(event.target.value))}
+              className="input py-1.5 text-xs"
+            >
+              <option value={0}>Never</option>
+              <option value={3}>Last 3 months</option>
+              <option value={6}>Last 6 months</option>
+              <option value={12}>Last 12 months</option>
+            </select>
+          </label>
+        </div>
         <Wheel
-          games={data.backlog}
+          games={hatGames}
           isAdmin={user?.isAdmin ?? false}
           nextMonth={data.nextMonth}
+          weightByVotes={weightByVotes}
         />
       </section>
 

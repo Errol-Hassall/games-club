@@ -85,6 +85,7 @@ export type PickData = {
   backlog: GameWithVotes[];
   current: Assignment | null;
   nextMonth: string;
+  recentlyPlayed: Array<{ title: string; month: string }>;
 };
 
 export type StatsData = {

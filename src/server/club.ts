@@ -271,10 +271,19 @@ export const getBacklog = createServerFn({ method: "GET" }).handler(
 export const getPickData = createServerFn({ method: "GET" }).handler(
   (): PickData => {
     const user = requireUser();
+    // Finished months only — the current month is still in progress.
+    const recentlyPlayed = getDb()
+      .query(
+        `SELECT g.title, a.month FROM assignments a
+         JOIN games g ON g.id = a.game_id
+         WHERE a.month < ? ORDER BY a.month DESC`,
+      )
+      .all(monthKey()) as Array<{ title: string; month: string }>;
     return {
       backlog: loadBacklog(user.id),
       current: loadAssignment(monthKey(), user.id),
       nextMonth: openPickMonth(),
+      recentlyPlayed,
     };
   },
 );

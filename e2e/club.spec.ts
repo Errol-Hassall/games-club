@@ -126,6 +126,11 @@ test("the wheel picks a game and an admin can assign it", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
 
   await visit(page, "/pick");
+
+  // Wheel options: weight the draw by votes and skip recently played games.
+  await page.getByLabel("Weight by votes").check();
+  await page.getByLabel("Skip recently played").selectOption("3");
+
   await page.getByRole("button", { name: "SPIN" }).click();
   await expect(page.getByText("The wheel chose")).toBeVisible({ timeout: 10_000 });
 

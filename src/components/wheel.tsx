@@ -4,7 +4,7 @@ import { CoverArt } from "#/components/cover-art";
 import { Icon } from "#/components/icons";
 import { formatMonth, formatPlaytime } from "#/lib/dates";
 import type { GameWithVotes } from "#/lib/types";
-import { pickRandom } from "#/lib/validation";
+import { pickRandom, pickWeighted } from "#/lib/validation";
 import { assignGame } from "#/server/club";
 
 const COLORS = [
@@ -22,10 +22,12 @@ export function Wheel({
   games,
   isAdmin,
   nextMonth,
+  weightByVotes = false,
 }: {
   games: GameWithVotes[];
   isAdmin: boolean;
   nextMonth: string;
+  weightByVotes?: boolean;
 }) {
   const router = useRouter();
   const [rotation, setRotation] = useState(0);
@@ -50,7 +52,14 @@ export function Wheel({
 
   function spin() {
     if (spinning || games.length === 0) return;
-    const chosen = pickRandom(games.map((_, index) => index));
+    // +1 so a game with zero votes can still be drawn. The slices stay
+    // uniform — only the odds follow the votes.
+    const chosen = weightByVotes
+      ? pickWeighted(
+          games.map((_, index) => index),
+          games.map((game) => game.voteCount + 1),
+        )
+      : pickRandom(games.map((_, index) => index));
     if (chosen === null) return;
     const center = (chosen + 0.5) * slice;
     const current = ((rotation % 360) + 360) % 360;
@@ -115,7 +124,7 @@ export function Wheel({
         </div>
         <p className="mt-6 max-w-xs text-center text-xs leading-relaxed text-muted">
           {games.length === 0
-            ? "The hat is empty. Suggest a game first."
+            ? "The hat is empty. Suggest a game or relax the options above."
             : `${games.length} games in the hat. The wheel picks, the club decides.`}
         </p>
         {games.length > 0 ? (
