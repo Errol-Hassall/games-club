@@ -113,6 +113,17 @@ docker compose up -d --build
 
 Open <http://your-server:3000>, sign in as `admin` with the password you set, and change it on the account page. Your data lives in the `games-club-data` Docker volume (a single SQLite file).
 
+Live game search is optional. Get a free key at <https://rawg.io/api>, put it in `.env`, then boot (or restart) with:
+
+```bash
+# .env
+RAWG_API_KEY=your-key-here
+
+docker compose up -d --build
+```
+
+With the key set, the suggest form auto-fills title, platforms, time to beat, description, Metascore and box art from RAWG.
+
 To try it with a pre-seeded demo club (members, games, past months with reviews):
 
 ```bash
