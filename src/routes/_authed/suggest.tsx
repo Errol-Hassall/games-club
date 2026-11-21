@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CoverArt } from "#/components/cover-art";
 import { Icon } from "#/components/icons";
 import { formatPlaytime } from "#/lib/dates";
-import type { ExternalGame } from "#/server/club";
+import type { ExternalGame } from "#/lib/rawg";
 import { searchExternalGames, suggestGame } from "#/server/club";
 
 export const Route = createFileRoute("/_authed/suggest")({
@@ -22,6 +22,8 @@ function SuggestPage() {
   const [title, setTitle] = useState("");
   const [platform, setPlatform] = useState("");
   const [playtimeHours, setPlaytimeHours] = useState("");
+  const [description, setDescription] = useState("");
+  const [metascore, setMetascore] = useState("");
   const [tags, setTags] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [notes, setNotes] = useState("");
@@ -53,6 +55,8 @@ function SuggestPage() {
     setTitle(result.title);
     setPlatform(result.platform);
     setPlaytimeHours(result.playtimeHours ? String(result.playtimeHours) : "");
+    setDescription(result.description ?? "");
+    setMetascore(result.metascore != null ? String(result.metascore) : "");
     setCoverUrl(result.coverUrl ?? "");
     setExternalSource(result.source);
     setExternalId(result.externalId);
@@ -99,6 +103,8 @@ function SuggestPage() {
           title,
           platform,
           playtimeHours: playtimeHours === "" ? null : Number(playtimeHours),
+          description,
+          metascore: metascore === "" ? null : Number(metascore),
           tags,
           coverUrl,
           notes,
@@ -261,6 +267,32 @@ function SuggestPage() {
                   placeholder="co-op, roguelike, chill — comma separated"
                 />
               </label>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
+                <label className="block">
+                  <span className="label">Description</span>
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    rows={3}
+                    maxLength={2000}
+                    className="input resize-y"
+                    placeholder="What is it about? Filled in from the game database when searching."
+                  />
+                </label>
+                <label className="block">
+                  <span className="label">Metascore</span>
+                  <input
+                    value={metascore}
+                    onChange={(event) => setMetascore(event.target.value)}
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="input"
+                    placeholder="96"
+                  />
+                </label>
+              </div>
               <label className="block">
                 <span className="label">Box art URL</span>
                 <input

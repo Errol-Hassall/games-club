@@ -87,6 +87,12 @@ function GamePage() {
               <Icon name="clock" className="h-4 w-4 text-clay" />
               {formatPlaytime(data.game.playtimeHours)}
             </span>
+            {data.game.metascore != null ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="star" className="h-4 w-4 text-gold" />
+                Metascore {data.game.metascore}
+              </span>
+            ) : null}
             {data.assignment ? (
               <AverageRating
                 rating={
@@ -101,6 +107,12 @@ function GamePage() {
               />
             ) : null}
           </div>
+
+          {data.game.description ? (
+            <p className="mt-5 max-w-xl text-sm leading-relaxed text-ink-soft">
+              {data.game.description}
+            </p>
+          ) : null}
 
           {data.game.notes ? (
             <p className="mt-5 max-w-xl border-l-2 border-gold pl-4 text-sm leading-relaxed text-ink-soft italic">

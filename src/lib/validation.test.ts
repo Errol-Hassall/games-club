@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   cleanCoverUrl,
+  cleanMetascore,
   cleanOptionalText,
   cleanPlaytime,
   cleanRating,
@@ -68,6 +69,16 @@ describe("months and ratings", () => {
     expect(cleanPlaytime(null)).toBeNull();
     expect(cleanPlaytime(0)).toBeNull();
     expect(cleanPlaytime(1001)).toBeNull();
+  });
+
+  test("validates metascores as whole numbers from 0 to 100", () => {
+    expect(cleanMetascore(96)).toBe(96);
+    expect(cleanMetascore("87")).toBe(87);
+    expect(cleanMetascore("")).toBeNull();
+    expect(cleanMetascore(null)).toBeNull();
+    expect(cleanMetascore(101)).toBeNull();
+    expect(cleanMetascore(-1)).toBeNull();
+    expect(cleanMetascore(87.5)).toBeNull();
   });
 });
 

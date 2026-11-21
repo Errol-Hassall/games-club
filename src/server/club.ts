@@ -7,6 +7,11 @@ import {
   monthKey,
   nextMonth,
 } from "#/lib/dates";
+import {
+  mapRawgGame,
+  type ExternalGame,
+  type RawgGame,
+} from "#/lib/rawg";
 import { topGenres } from "#/lib/stats";
 import type {
   Assignment,
@@ -22,6 +27,7 @@ import type {
 } from "#/lib/types";
 import {
   cleanCoverUrl,
+  cleanMetascore,
   cleanOptionalText,
   cleanPlaytime,
   cleanRating,
@@ -40,6 +46,8 @@ type GameRow = {
   playtime_hours: number | null;
   notes: string | null;
   genres: string | null;
+  description: string | null;
+  metascore: number | null;
   suggested_by_name: string | null;
   created_at: string;
 };
@@ -65,8 +73,8 @@ type AssignmentRow = GameRow & {
 };
 
 const GAME_COLUMNS = `
-  g.id, g.title, g.platform, g.cover_url, g.playtime_hours, g.notes, g.genres, g.created_at,
-  u.name AS suggested_by_name`;
+  g.id, g.title, g.platform, g.cover_url, g.playtime_hours, g.notes, g.genres,
+  g.description, g.metascore, g.created_at, u.name AS suggested_by_name`;
 
 function mapGame(row: GameRow): Game {
   return {
@@ -76,6 +84,8 @@ function mapGame(row: GameRow): Game {
     coverUrl: row.cover_url,
     playtimeHours: row.playtime_hours,
     notes: row.notes,
+    description: row.description,
+    metascore: row.metascore,
     tags: parseTags(row.genres),
     suggestedByName: row.suggested_by_name,
     createdAt: row.created_at,
@@ -519,6 +529,8 @@ export const suggestGame = createServerFn({ method: "POST" })
       platform: typeof data.platform === "string" ? data.platform : "",
       playtimeHours: data.playtimeHours ?? null,
       coverUrl: typeof data.coverUrl === "string" ? data.coverUrl : "",
+      description: typeof data.description === "string" ? data.description : "",
+      metascore: data.metascore ?? null,
       notes: typeof data.notes === "string" ? data.notes : "",
       tags: typeof data.tags === "string" ? data.tags : "",
       externalSource:
@@ -535,6 +547,8 @@ export const suggestGame = createServerFn({ method: "POST" })
 
     const playtime = cleanPlaytime(data.playtimeHours);
     const coverUrl = cleanCoverUrl(data.coverUrl);
+    const description = cleanOptionalText(data.description, 2000);
+    const metascore = cleanMetascore(data.metascore);
     const notes = cleanOptionalText(data.notes, 1000);
     const tags = cleanTags(data.tags);
     const source = cleanOptionalText(data.externalSource, 24);
@@ -542,8 +556,8 @@ export const suggestGame = createServerFn({ method: "POST" })
 
     const result = getDb()
       .query(
-        `INSERT INTO games (title, platform, cover_url, playtime_hours, notes, genres, external_source, external_id, suggested_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO games (title, platform, cover_url, playtime_hours, notes, description, metascore, genres, external_source, external_id, suggested_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         title,
@@ -551,6 +565,8 @@ export const suggestGame = createServerFn({ method: "POST" })
         coverUrl,
         playtime,
         notes,
+        description,
+        metascore,
         tags.length > 0 ? tags.join(", ") : null,
         source,
         externalId,
@@ -560,23 +576,6 @@ export const suggestGame = createServerFn({ method: "POST" })
 
     return { ok: true as const, gameId: Number(result.lastInsertRowid) };
   });
-
-type RawgResult = {
-  id: number;
-  name: string;
-  background_image: string | null;
-  playtime: number;
-  platforms?: Array<{ platform: { name: string } }>;
-};
-
-export type ExternalGame = {
-  title: string;
-  platform: string;
-  coverUrl: string | null;
-  playtimeHours: number | null;
-  source: string;
-  externalId: string;
-};
 
 export const searchExternalGames = createServerFn({ method: "GET" })
   .validator((input: unknown) => {
@@ -614,21 +613,10 @@ export const searchExternalGames = createServerFn({ method: "GET" })
             error: "Game search is unavailable right now.",
           };
         }
-        const payload = (await response.json()) as { results?: RawgResult[] };
+        const payload = (await response.json()) as { results?: RawgGame[] };
         return {
           configured: true,
-          results: (payload.results ?? []).map((game) => ({
-            title: game.name,
-            platform:
-              game.platforms
-                ?.slice(0, 3)
-                .map((entry) => entry.platform.name)
-                .join(", ") || "Unknown",
-            coverUrl: game.background_image,
-            playtimeHours: game.playtime > 0 ? game.playtime : null,
-            source: "rawg",
-            externalId: String(game.id),
-          })),
+          results: (payload.results ?? []).map(mapRawgGame),
         };
       } catch {
         return {

@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS games (
   cover_url TEXT,
   playtime_hours REAL,
   notes TEXT,
+  description TEXT,
+  metascore INTEGER,
   genres TEXT,
   external_source TEXT,
   external_id TEXT,
@@ -80,6 +82,8 @@ CREATE INDEX IF NOT EXISTS idx_votes_game ON votes(game_id);
 // new databases already have them from the DDL above.
 const COLUMN_UPGRADES: Array<[table: string, column: string, definition: string]> = [
   ["games", "genres", "TEXT"],
+  ["games", "description", "TEXT"],
+  ["games", "metascore", "INTEGER"],
 ];
 
 function migrateColumns(db: Database): void {
@@ -145,6 +149,8 @@ type SeedGame = {
   cover: string;
   playtime: number;
   notes: string;
+  description?: string;
+  metascore?: number;
   genres?: string[];
   month?: number;
   votes?: number[];
@@ -165,6 +171,9 @@ const SEED_GAMES: SeedGame[] = [
     platform: "PC, Switch",
     cover: "/covers/hades.jpg",
     playtime: 21,
+    description:
+      "Zagreus, son of Hades, keeps dying and keeps climbing out of the underworld — every run reshaped by the boons the gods grant along the way.",
+    metascore: 96,
     notes:
       "Fast, clever and endlessly replayable. Suggested after the roguelike chat.",
     month: 0,
@@ -321,7 +330,7 @@ function seedDemo(db: Database): void {
   for (const game of SEED_GAMES) {
     const result = db
       .query(
-        "INSERT INTO games (title, platform, cover_url, playtime_hours, notes, genres, suggested_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO games (title, platform, cover_url, playtime_hours, notes, description, metascore, genres, suggested_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         game.title,
@@ -329,6 +338,8 @@ function seedDemo(db: Database): void {
         game.cover,
         game.playtime,
         game.notes,
+        game.description ?? null,
+        game.metascore ?? null,
         game.genres?.join(", ") ?? null,
         suggestedBy ?? null,
         now.toISOString(),

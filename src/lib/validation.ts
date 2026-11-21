@@ -44,6 +44,13 @@ export function cleanPlaytime(value: unknown): number | null {
   return Math.round(hours * 10) / 10;
 }
 
+export function cleanMetascore(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const score = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(score) || score < 0 || score > 100) return null;
+  return score;
+}
+
 export function cleanCoverUrl(value: unknown): string | null {
   const url = cleanOptionalText(value, 500);
   if (!url) return null;

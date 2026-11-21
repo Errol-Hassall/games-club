@@ -13,6 +13,8 @@ export type Game = {
   coverUrl: string | null;
   playtimeHours: number | null;
   notes: string | null;
+  description: string | null;
+  metascore: number | null;
   tags: string[];
   suggestedByName: string | null;
   createdAt: string;

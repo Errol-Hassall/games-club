@@ -62,12 +62,21 @@ test("a member can join, suggest a game, vote and sign out", async ({ page }) =>
   await page.getByLabel("Console / platform *").fill("PC, Xbox");
   await page.getByLabel("Time to beat (hours)").fill("12");
   await page.getByLabel("Tags").fill("puzzle, co-op");
+  await page
+    .getByLabel("Description")
+    .fill("A martial-arts adventure with a twist.");
+  await page.getByLabel("Metascore").fill("93");
   // Upload box art; the returned URL lands in the form's cover field.
   await page.getByLabel("Or upload box art").setInputFiles("e2e/fixtures/cover.png");
   await expect(page.getByLabel("Box art URL")).toHaveValue(/\/api\/covers\//);
   await page.getByRole("button", { name: "Add to the shelf" }).click();
   await expect(page).toHaveURL(/\/game\/\d+$/);
   await expect(page.getByText("puzzle", { exact: true })).toBeVisible();
+  // The description and metascore were saved and are shown on the game page.
+  await expect(
+    page.getByText("A martial-arts adventure with a twist."),
+  ).toBeVisible();
+  await expect(page.getByText("Metascore 93")).toBeVisible();
   // The uploaded cover is fetched from /api/covers and rendered via a blob URL.
   const coverImg = page.locator("img[alt='Tunic box art']").first();
   await expect(coverImg).toBeVisible();

@@ -40,7 +40,7 @@ On the pick page anyone can **vote** for games on the shelf (one vote per member
 
 ### 6. Suggesting a game
 
-Any member can add a game. If you set `RAWG_API_KEY` on the server, the search box pulls in title, platforms, time to beat and box art automatically; otherwise everything is entered by hand (the live preview on the right follows along).
+Any member can add a game. If you set `RAWG_API_KEY` on the server, the search box pulls in title, platforms, time to beat, description, Metascore and box art automatically; otherwise everything is entered by hand (the live preview on the right follows along).
 
 ![Suggest](docs/screenshots/06-suggest.png)
 
@@ -154,7 +154,7 @@ All configuration is environment variables (see `.env.example`). There are no re
 | `ADMIN_NAME`     | `Club Admin`     | Display name for that account.                                                              |
 | `ADMIN_PASSWORD` | `changeme123`    | Password for the admin account (only used when creating it). **Change this.**               |
 | `SEED_DEMO`      | `false`          | When `true`, an empty database is filled with a demo club: 4 members, 8 games, 3 played months with reviews, votes. |
-| `RAWG_API_KEY`   | *(empty)*        | Optional free key from <https://rawg.io/api>. Enables live game search (title → platforms, time to beat, box art) in the suggest form. Without it, details are entered by hand. |
+| `RAWG_API_KEY`   | *(empty)*        | Optional free key from <https://rawg.io/api>. Enables live game search (title → platforms, time to beat, description, Metascore, box art) in the suggest form. Without it, details are entered by hand. |
 | `COOKIE_SECURE`  | `false`          | Set `true` when serving over HTTPS so session cookies get the `Secure` flag.                 |
 
 ## How a month works
@@ -198,7 +198,7 @@ scripts/screenshots.ts  # regenerates docs/screenshots for this README
 Notes:
 
 - **Auth** is a plain cookie session: random 32-byte token in an `httpOnly` cookie, SHA-256 hash stored in SQLite. Passwords are scrypt-hashed with a per-user salt. The admin reset flow issues a one-time temporary password and forces a change on next sign-in — no email infrastructure needed.
-- **Game metadata** (platform, time to beat, box art) is stored per game. With `RAWG_API_KEY` set, the suggest form searches [RAWG](https://rawg.io/api) server-side and pre-fills everything; without it you type it in. Covers are plain URLs rendered with a generated fallback tile when missing.
+- **Game metadata** (platform, time to beat, description, Metascore, box art) is stored per game. With `RAWG_API_KEY` set, the suggest form searches [RAWG](https://rawg.io/api) server-side and pre-fills everything; without it you type it in. Covers are URLs — either an external link or a local upload (stored next to the database) — rendered with a generated fallback tile when missing.
 - **Current month** is derived from the server clock (UTC month), so "now playing", "upcoming" and "played" need no manual switching.
 
 ## Tech stack
