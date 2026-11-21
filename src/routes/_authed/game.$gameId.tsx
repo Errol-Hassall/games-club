@@ -5,8 +5,13 @@ import { VoteButton } from "#/components/game-card";
 import { Icon } from "#/components/icons";
 import { AverageRating, RatingStars } from "#/components/rating";
 import { formatDate, formatMonth, formatPlaytime } from "#/lib/dates";
-import type { GameFlagKind } from "#/lib/types";
-import { assignGame, getGame, toggleGameFlag } from "#/server/club";
+import type { Game, GameFlagKind } from "#/lib/types";
+import {
+  assignGame,
+  getGame,
+  toggleGameFlag,
+  updateGame,
+} from "#/server/club";
 
 export const Route = createFileRoute("/_authed/game/$gameId")({
   head: () => ({ meta: [{ title: "Game · Games Club" }] }),
@@ -15,8 +20,10 @@ export const Route = createFileRoute("/_authed/game/$gameId")({
 });
 
 function GamePage() {
+  const router = useRouter();
   const data = Route.useLoaderData();
   const { user } = Route.useRouteContext();
+  const [editing, setEditing] = useState(false);
 
   if (!data) {
     return (
@@ -149,7 +156,26 @@ function GamePage() {
                 )}
               </>
             )}
+            {user?.isAdmin ? (
+              <button
+                type="button"
+                onClick={() => setEditing((value) => !value)}
+                className="btn-ghost btn-sm"
+              >
+                {editing ? "Close editor" : "Edit details"}
+              </button>
+            ) : null}
           </div>
+
+          {editing ? (
+            <EditGameForm
+              game={data.game}
+              onDone={() => {
+                setEditing(false);
+                void router.invalidate();
+              }}
+            />
+          ) : null}
 
           <section aria-label="Club status" className="card mt-7 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -311,6 +337,165 @@ function AssignPanel({
       {error ? (
         <p className="w-full text-xs font-semibold text-clay">{error}</p>
       ) : null}
+    </form>
+  );
+}
+
+function EditGameForm({ game, onDone }: { game: Game; onDone: () => void }) {
+  const [title, setTitle] = useState(game.title);
+  const [platform, setPlatform] = useState(game.platform);
+  const [playtimeHours, setPlaytimeHours] = useState(
+    game.playtimeHours != null ? String(game.playtimeHours) : "",
+  );
+  const [description, setDescription] = useState(game.description ?? "");
+  const [metascore, setMetascore] = useState(
+    game.metascore != null ? String(game.metascore) : "",
+  );
+  const [tags, setTags] = useState(game.tags.join(", "));
+  const [coverUrl, setCoverUrl] = useState(game.coverUrl ?? "");
+  const [notes, setNotes] = useState(game.notes ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
+    setError(null);
+    try {
+      const result = await updateGame({
+        data: {
+          gameId: game.id,
+          title,
+          platform,
+          playtimeHours:
+            playtimeHours === "" ? null : Number(playtimeHours),
+          description,
+          metascore: metascore === "" ? null : Number(metascore),
+          tags,
+          coverUrl,
+          notes,
+        },
+      });
+      if ("error" in result) {
+        setError(result.error ?? "Could not save the changes.");
+        return;
+      }
+      onDone();
+    } catch {
+      setError("Could not save the changes. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="card mt-7 space-y-4 p-5">
+      <h2 className="display text-2xl text-ink">Edit details</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">Game title *</span>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+            maxLength={120}
+            className="input"
+          />
+        </label>
+        <label className="block">
+          <span className="label">Console / platform *</span>
+          <input
+            value={platform}
+            onChange={(event) => setPlatform(event.target.value)}
+            required
+            maxLength={60}
+            className="input"
+          />
+        </label>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
+        <label className="block">
+          <span className="label">Description</span>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={3}
+            maxLength={2000}
+            className="input resize-y"
+          />
+        </label>
+        <div className="grid gap-4">
+          <label className="block">
+            <span className="label">Time to beat (hours)</span>
+            <input
+              value={playtimeHours}
+              onChange={(event) => setPlaytimeHours(event.target.value)}
+              type="number"
+              min="0.5"
+              max="1000"
+              step="0.5"
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Metascore</span>
+            <input
+              value={metascore}
+              onChange={(event) => setMetascore(event.target.value)}
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              className="input"
+            />
+          </label>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">Tags</span>
+          <input
+            value={tags}
+            onChange={(event) => setTags(event.target.value)}
+            maxLength={120}
+            className="input"
+          />
+        </label>
+        <label className="block">
+          <span className="label">Box art URL</span>
+          <input
+            value={coverUrl}
+            onChange={(event) => setCoverUrl(event.target.value)}
+            maxLength={500}
+            className="input"
+          />
+        </label>
+      </div>
+      <label className="block">
+        <span className="label">Why this one?</span>
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={3}
+          maxLength={1000}
+          className="input resize-y"
+        />
+      </label>
+
+      {error ? (
+        <p role="alert" className="text-xs font-semibold text-clay">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={pending} className="btn-primary">
+          {pending ? "Saving…" : "Save changes"}
+        </button>
+        <button type="button" onClick={onDone} className="btn-ghost btn-sm">
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

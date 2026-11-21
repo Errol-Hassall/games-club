@@ -84,6 +84,11 @@ test("a member can join, suggest a game, vote and sign out", async ({ page }) =>
     coverImg.evaluate((element) => (element as HTMLImageElement).naturalWidth),
   ).toBeGreaterThan(0);
 
+  // Members cannot edit a game's details.
+  await expect(page.getByRole("button", { name: "Edit details" })).toHaveCount(
+    0,
+  );
+
   // Club status flags: mark it played, see the name, then unmark.
   const status = page.getByRole("region", { name: "Club status" });
   const playedFlag = status.getByLabel("I've played it");
@@ -147,6 +152,17 @@ test("an admin can open a past month and post a review", async ({ page }) => {
   await expect(page.getByText("Saved")).toBeVisible();
   await expect(
     page.getByRole("list").getByText("E2E review: the farm life remains undefeated."),
+  ).toBeVisible();
+
+  // Admins can correct a past month's game details from its page.
+  await page.getByRole("link", { name: "Game details" }).click();
+  await expect(page).toHaveURL(/\/game\/\d+$/);
+  await page.getByRole("button", { name: "Edit details" }).click();
+  await page.getByLabel("Description").fill("Corrected by the admin.");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Corrected by the admin.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Edit details" }),
   ).toBeVisible();
 });
 

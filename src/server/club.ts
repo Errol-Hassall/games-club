@@ -577,6 +577,60 @@ export const suggestGame = createServerFn({ method: "POST" })
     return { ok: true as const, gameId: Number(result.lastInsertRowid) };
   });
 
+export const updateGame = createServerFn({ method: "POST" })
+  .validator((input: unknown) => {
+    const data = (input ?? {}) as Record<string, unknown>;
+    return {
+      gameId: Number(data.gameId),
+      title: typeof data.title === "string" ? data.title : "",
+      platform: typeof data.platform === "string" ? data.platform : "",
+      playtimeHours: data.playtimeHours ?? null,
+      coverUrl: typeof data.coverUrl === "string" ? data.coverUrl : "",
+      description: typeof data.description === "string" ? data.description : "",
+      metascore: data.metascore ?? null,
+      notes: typeof data.notes === "string" ? data.notes : "",
+      tags: typeof data.tags === "string" ? data.tags : "",
+    };
+  })
+  .handler(async ({ data }) => {
+    requireAdmin();
+    if (!Number.isInteger(data.gameId))
+      return { error: "That game does not exist." };
+
+    const title = cleanText(data.title, 120);
+    const platform = cleanText(data.platform, 60);
+    if (!title) return { error: "Please enter a game title." };
+    if (!platform) return { error: "Please enter the console or platform." };
+
+    const playtime = cleanPlaytime(data.playtimeHours);
+    const coverUrl = cleanCoverUrl(data.coverUrl);
+    const description = cleanOptionalText(data.description, 2000);
+    const metascore = cleanMetascore(data.metascore);
+    const notes = cleanOptionalText(data.notes, 1000);
+    const tags = cleanTags(data.tags);
+
+    const result = getDb()
+      .query(
+        `UPDATE games
+         SET title = ?, platform = ?, cover_url = ?, playtime_hours = ?,
+             notes = ?, description = ?, metascore = ?, genres = ?
+         WHERE id = ?`,
+      )
+      .run(
+        title,
+        platform,
+        coverUrl,
+        playtime,
+        notes,
+        description,
+        metascore,
+        tags.length > 0 ? tags.join(", ") : null,
+        data.gameId,
+      );
+    if (result.changes === 0) return { error: "That game does not exist." };
+    return { ok: true as const };
+  });
+
 export const searchExternalGames = createServerFn({ method: "GET" })
   .validator((input: unknown) => {
     const data = (input ?? {}) as Record<string, unknown>;
