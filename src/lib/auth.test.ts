@@ -38,6 +38,19 @@ describe("password rules", () => {
   test("caps the length", () => {
     expect(passwordProblem("x".repeat(201))).not.toBeNull();
   });
+
+  test("accepts any content from eight to two hundred characters", () => {
+    expect(passwordProblem("a".repeat(8))).toBeNull();
+    expect(passwordProblem("has spaces ok")).toBeNull();
+    expect(passwordProblem("pässwörd-ünïcode")).toBeNull();
+    expect(passwordProblem('sp3c!al-chars&<>"\'')).toBeNull();
+    expect(passwordProblem("x".repeat(200))).toBeNull();
+  });
+
+  test("rejects seven and two hundred one characters", () => {
+    expect(passwordProblem("a".repeat(7))).not.toBeNull();
+    expect(passwordProblem("y".repeat(201))).not.toBeNull();
+  });
 });
 
 describe("temporary passwords", () => {

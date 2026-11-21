@@ -47,7 +47,7 @@ function RegisterPage() {
         Pick a username, tell us what to call you, and you are in.
       </p>
 
-      <form method="post" onSubmit={handleSubmit} className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <label className="block">
           <span className="label">Display name</span>
           <input
@@ -69,7 +69,6 @@ function RegisterPage() {
             required
             minLength={3}
             maxLength={24}
-            pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,23}"
             className="input"
             placeholder="maya"
           />

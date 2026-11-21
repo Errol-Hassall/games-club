@@ -20,6 +20,11 @@ async function login(page: Page, username: string, password: string): Promise<vo
 }
 
 async function signOut(page: Page): Promise<void> {
+  // The click does nothing until React has hydrated the shell, which can lag
+  // behind a full page load; wait for it before clicking.
+  await page.waitForFunction(() =>
+    Object.keys(document.body).some((key) => key.startsWith("__reactFiber$")),
+  );
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
@@ -41,6 +46,34 @@ test("anonymous visitors are sent to sign in and bad passwords are rejected", as
   await page.getByLabel("Password").fill("wrong-password");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("alert")).toContainText("Invalid username or password");
+});
+
+test("registration accepts any valid password", async ({ page }) => {
+  // The username field must not carry an HTML5 pattern attribute: the old
+  // value was an invalid regex under the spec's v flag, so browsers logged a
+  // console error on every submit. Username format is enforced server-side.
+  await visit(page, "/register");
+  await expect(page.getByLabel("Username")).not.toHaveAttribute("pattern");
+
+  const passwords = [
+    "exactly8ch", // exactly the minimum length
+    "has spaces ok",
+    "pässwörd-ünïcode",
+    'sp3c!al-chars&<>"\'',
+    "z".repeat(200), // exactly the maximum length
+  ];
+
+  for (const [i, password] of passwords.entries()) {
+    const username = unique(`pw${i}`);
+    await register(page, username, `Password Test ${i}`, password);
+
+    // Prove the password round-trips: sign out and back in with it.
+    await signOut(page);
+    await login(page, username, password);
+    await expect(page).toHaveURL(/\/$/);
+    // Leave signed out: /register redirects signed-in users to the dashboard.
+    await signOut(page);
+  }
 });
 
 test("a member can join, suggest a game, vote and sign out", async ({ page }) => {
