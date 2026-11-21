@@ -226,3 +226,36 @@ test("the stats page summarises the club", async ({ page }) => {
   // A member who has reviewed in the seed data.
   await expect(page.getByText("Maya Chen", { exact: true })).toBeVisible();
 });
+
+test("an admin can export the club data as JSON, a member cannot", async ({
+  page,
+}) => {
+  await login(page, ADMIN_USERNAME, ADMIN_PASSWORD);
+  await expect(page).toHaveURL(/\/$/);
+
+  // The button on the admin page triggers a real file download.
+  await visit(page, "/admin");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export club data" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("games-club-export.json");
+
+  // The API response holds the whole club, minus secrets.
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.get(`${origin}/api/export`);
+  expect(response.status()).toBe(200);
+  const data = await response.json();
+  expect(data.users.length).toBeGreaterThan(0);
+  expect(data.games.length).toBeGreaterThan(0);
+  expect(data.assignments.length).toBeGreaterThan(0);
+  for (const user of data.users) {
+    expect(user).not.toHaveProperty("password_hash");
+  }
+
+  // A plain member gets a 403.
+  await signOut(page);
+  await register(page, unique("exporter"), "Export Test", "member-password");
+  const memberResponse = await page.request.get(`${origin}/api/export`);
+  expect(memberResponse.status()).toBe(403);
+});

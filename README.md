@@ -34,7 +34,7 @@ Every suggested-but-unscheduled game lives here, with cover art, platform, time 
 
 ### 5. Picking the next game: spin wheel or voting
 
-On the pick page anyone can **vote** for games on the shelf (one vote per member, changeable at will), or spin the **wheel** to let fate choose. Only an admin locks a picked game into a month.
+On the pick page anyone can **vote** for games on the shelf (one vote per member, changeable at will), or spin the **wheel** to let fate choose — optionally weighted by votes and set to skip games played in the last few months. Only an admin locks a picked game into a month.
 
 ![Pick — wheel result](docs/screenshots/05-pick-wheel.png)
 
@@ -64,7 +64,7 @@ Every finished month is listed here with average rating and a taste of the lates
 
 ### 10. A played month: reviews and discussion
 
-Once the month ends, every member can post (or edit) their own review with a 1–5 star rating.
+Once the month ends, every member can post (or edit) their own review: a 1–5 star rating, their thoughts, and optional pros and cons.
 
 ![Played month — reviews](docs/screenshots/10-month-played.png)
 
@@ -77,6 +77,8 @@ The single admin account sees all members, when they joined and how many games t
 ### 12. Admin: password reset (no email)
 
 Locked out? The admin resets a member's password, which signs them out everywhere and shows a **one-time temporary password**. The member signs in with it and is forced to choose a new one before they can do anything else.
+
+The same page has a **Back up the club** card: one click downloads every member, game, month, review, flag and vote as a single JSON file (passwords and sessions are left out).
 
 ![Admin password reset](docs/screenshots/12-admin-reset.png)
 
@@ -171,9 +173,9 @@ All configuration is environment variables (see `.env.example`). There are no re
 ## How a month works
 
 1. **Suggest** — any member adds games to the shelf (with or without box art).
-2. **Pick** — members vote, or someone spins the wheel; an admin assigns the winner to the next open month.
+2. **Pick** — members vote, or someone spins the wheel (can be weighted by votes and set to skip recently played games); an admin assigns the winner to the next open month.
 3. **Play** — the dashboard shows "Now playing" for the current calendar month.
-4. **Review** — when the month ends, the discussion opens and each member posts a 1–5 star review with their thoughts (one per member, editable).
+4. **Review** — when the month ends, the discussion opens and each member posts a 1–5 star review with their thoughts and optional pros/cons (one per member, editable).
 5. **Archive** — finished months move to the archive with their average rating and all reviews.
 
 ## Architecture

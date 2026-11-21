@@ -43,6 +43,8 @@ function AdminPage() {
         ))}
       </div>
 
+      <ExportCard />
+
       <div className="card mt-8 p-5">
         <div className="flex items-start gap-3">
           <Icon name="lock" className="mt-0.5 h-5 w-5 shrink-0 text-clay" />
@@ -186,5 +188,62 @@ function MemberRow({ member, isSelf }: { member: AdminUser; isSelf: boolean }) {
         </p>
       ) : null}
     </article>
+  );
+}
+
+function ExportCard() {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleExport() {
+    setPending(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/export");
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "games-club-export.json";
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Could not export the club data.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="card mt-8 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <Icon name="download" className="mt-0.5 h-5 w-5 shrink-0 text-clay" />
+          <div>
+            <h2 className="text-sm font-bold text-ink">Back up the club</h2>
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-muted">
+              Downloads every member, game, month, review, flag and vote as a
+              single JSON file. Passwords and sessions are left out on purpose.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={pending}
+          className="btn-ghost btn-sm"
+        >
+          {pending ? "Preparing…" : "Export club data"}
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-3 text-xs font-semibold text-clay">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
