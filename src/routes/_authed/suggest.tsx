@@ -30,6 +30,8 @@ function SuggestPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   async function handleSearch(event: React.FormEvent) {
     event.preventDefault();
@@ -56,6 +58,35 @@ function SuggestPage() {
     setExternalId(result.externalId);
     setResults([]);
     setQuery(result.title);
+  }
+
+  async function handleCoverUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/covers", { method: "POST", body: form });
+      if (!response.ok) {
+        setUploadError(
+          response.status === 413
+            ? "That image is too large — 5 MB max."
+            : response.status === 415
+              ? "Please use a PNG, JPEG, WebP or GIF image."
+              : "Could not upload the cover. Please try again.",
+        );
+        return;
+      }
+      const data = (await response.json()) as { url: string };
+      setCoverUrl(data.url);
+    } catch {
+      setUploadError("Could not upload the cover. Please try again.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -240,6 +271,21 @@ function SuggestPage() {
                   placeholder="https://…"
                 />
               </label>
+              <label className="block">
+                <span className="label">Or upload box art</span>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp, image/gif"
+                  onChange={handleCoverUpload}
+                  disabled={uploading}
+                  className="mt-1 block w-full cursor-pointer text-xs text-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-forest/10 file:px-3 file:py-2 file:text-[11px] file:font-bold file:text-forest hover:file:bg-forest/20"
+                />
+              </label>
+              {uploading ? (
+                <p className="text-[11px] text-muted">Uploading…</p>
+              ) : uploadError ? (
+                <p className="text-xs font-semibold text-clay">{uploadError}</p>
+              ) : null}
               <label className="block">
                 <span className="label">Why this one?</span>
                 <textarea

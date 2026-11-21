@@ -21,8 +21,10 @@ import { Route as AuthedPickRouteImport } from './routes/_authed/pick'
 import { Route as AuthedPlayedRouteImport } from './routes/_authed/played'
 import { Route as AuthedStatsRouteImport } from './routes/_authed/stats'
 import { Route as AuthedSuggestRouteImport } from './routes/_authed/suggest'
+import { Route as ApiCoversRouteImport } from './routes/api/covers'
 import { Route as AuthedGameGameIdRouteImport } from './routes/_authed/game.$gameId'
 import { Route as AuthedMonthMonthRouteImport } from './routes/_authed/month.$month'
+import { Route as ApiCoversFilenameRouteImport } from './routes/api/covers.$filename'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -82,6 +84,11 @@ const AuthedSuggestRoute = AuthedSuggestRouteImport.update({
   path: '/suggest',
   getParentRoute: () => AuthedRoute,
 } as any)
+const ApiCoversRoute = ApiCoversRouteImport.update({
+  id: '/api/covers',
+  path: '/api/covers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedGameGameIdRoute = AuthedGameGameIdRouteImport.update({
   id: '/game/$gameId',
   path: '/game/$gameId',
@@ -91,6 +98,11 @@ const AuthedMonthMonthRoute = AuthedMonthMonthRouteImport.update({
   id: '/month/$month',
   path: '/month/$month',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiCoversFilenameRoute = ApiCoversFilenameRouteImport.update({
+  id: '/$filename',
+  path: '/$filename',
+  getParentRoute: () => ApiCoversRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -104,8 +116,10 @@ export interface FileRoutesByFullPath {
   '/played': typeof AuthedPlayedRoute
   '/stats': typeof AuthedStatsRoute
   '/suggest': typeof AuthedSuggestRoute
+  '/api/covers': typeof ApiCoversRouteWithChildren
   '/game/$gameId': typeof AuthedGameGameIdRoute
   '/month/$month': typeof AuthedMonthMonthRoute
+  '/api/covers/$filename': typeof ApiCoversFilenameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
@@ -118,8 +132,10 @@ export interface FileRoutesByTo {
   '/played': typeof AuthedPlayedRoute
   '/stats': typeof AuthedStatsRoute
   '/suggest': typeof AuthedSuggestRoute
+  '/api/covers': typeof ApiCoversRouteWithChildren
   '/game/$gameId': typeof AuthedGameGameIdRoute
   '/month/$month': typeof AuthedMonthMonthRoute
+  '/api/covers/$filename': typeof ApiCoversFilenameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,9 +150,11 @@ export interface FileRoutesById {
   '/_authed/played': typeof AuthedPlayedRoute
   '/_authed/stats': typeof AuthedStatsRoute
   '/_authed/suggest': typeof AuthedSuggestRoute
+  '/api/covers': typeof ApiCoversRouteWithChildren
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/game/$gameId': typeof AuthedGameGameIdRoute
   '/_authed/month/$month': typeof AuthedMonthMonthRoute
+  '/api/covers/$filename': typeof ApiCoversFilenameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,8 +169,10 @@ export interface FileRouteTypes {
     | '/played'
     | '/stats'
     | '/suggest'
+    | '/api/covers'
     | '/game/$gameId'
     | '/month/$month'
+    | '/api/covers/$filename'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -165,8 +185,10 @@ export interface FileRouteTypes {
     | '/played'
     | '/stats'
     | '/suggest'
+    | '/api/covers'
     | '/game/$gameId'
     | '/month/$month'
+    | '/api/covers/$filename'
   id:
     | '__root__'
     | '/_auth'
@@ -180,14 +202,17 @@ export interface FileRouteTypes {
     | '/_authed/played'
     | '/_authed/stats'
     | '/_authed/suggest'
+    | '/api/covers'
     | '/_authed/'
     | '/_authed/game/$gameId'
     | '/_authed/month/$month'
+    | '/api/covers/$filename'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AuthedRoute: typeof AuthedRouteWithChildren
+  ApiCoversRoute: typeof ApiCoversRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -276,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSuggestRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/api/covers': {
+      id: '/api/covers'
+      path: '/api/covers'
+      fullPath: '/api/covers'
+      preLoaderRoute: typeof ApiCoversRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed/game/$gameId': {
       id: '/_authed/game/$gameId'
       path: '/game/$gameId'
@@ -289,6 +321,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/month/$month'
       preLoaderRoute: typeof AuthedMonthMonthRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/covers/$filename': {
+      id: '/api/covers/$filename'
+      path: '/$filename'
+      fullPath: '/api/covers/$filename'
+      preLoaderRoute: typeof ApiCoversFilenameRouteImport
+      parentRoute: typeof ApiCoversRoute
     }
   }
 }
@@ -334,9 +373,22 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface ApiCoversRouteChildren {
+  ApiCoversFilenameRoute: typeof ApiCoversFilenameRoute
+}
+
+const ApiCoversRouteChildren: ApiCoversRouteChildren = {
+  ApiCoversFilenameRoute: ApiCoversFilenameRoute,
+}
+
+const ApiCoversRouteWithChildren = ApiCoversRoute._addFileChildren(
+  ApiCoversRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AuthedRoute: AuthedRouteWithChildren,
+  ApiCoversRoute: ApiCoversRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
