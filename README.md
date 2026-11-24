@@ -110,18 +110,46 @@ Requirements: Docker + Docker Compose on your server. That's it.
 git clone git@github.com:Errol-Hassall/games-club.git
 cd games-club
 cp .env.example .env        # then edit ADMIN_PASSWORD at minimum
-docker compose up -d --build
+docker compose up -d        # pulls errolhassall/games-club:latest
 ```
 
-Open <http://your-server:3000>, sign in as `admin` with the password you set, and change it on the account page. Your data lives in the `games-club-data` Docker volume (a single SQLite file).
+The image is published on [Docker Hub](https://hub.docker.com/r/errolhassall/games-club), so the checked-in `docker-compose.yml` is also a ready-to-copy example:
 
-Live game search is optional. Get a free key at <https://rawg.io/api>, put it in `.env`, then boot (or restart) with:
+```yaml
+services:
+  games-club:
+    image: errolhassall/games-club:latest
+    container_name: games-club
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_NAME=${ADMIN_NAME:-Club Admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme123}
+      - SEED_DEMO=${SEED_DEMO:-false}
+      - RAWG_API_KEY=${RAWG_API_KEY:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+    volumes:
+      - games-club-data:/data
+    restart: unless-stopped
+
+volumes:
+  games-club-data:
+```
+
+`PUID` and `PGID` are the user and group the container runs as. Set them to your own `id -u` and `id -g`, so the SQLite database and uploaded covers on the data volume are owned by you on the host. To keep the data in a normal host folder, replace the volume with `- ./data:/data`.
+
+Open <http://your-server:3000>, sign in as `admin` with the password you set, and change it on the account page. By default your data lives in the `games-club-data` Docker volume (a single SQLite file).
+
+Live game search is optional. Get a free key at <https://rawg.io/api>, put it in `.env` (or `RAWG_API_KEY` in the compose file), then restart:
 
 ```bash
 # .env
 RAWG_API_KEY=your-key-here
 
-docker compose up -d --build
+docker compose up -d
 ```
 
 With the key set, the suggest form auto-fills title, platforms, time to beat, description, Metascore and box art from RAWG.
@@ -129,19 +157,20 @@ With the key set, the suggest form auto-fills title, platforms, time to beat, de
 To try it with a pre-seeded demo club (members, games, past months with reviews):
 
 ```bash
-SEED_DEMO=true docker compose up -d --build
+SEED_DEMO=true docker compose up -d
 # admin / changeme123  (unless you set ADMIN_PASSWORD in .env)
 ```
 
 ### Plain Docker
 
 ```bash
-docker build -t games-club .
 docker run -d --name games-club \
   -p 3000:3000 \
+  -e PUID=1000 \
+  -e PGID=1000 \
   -v games-club-data:/data \
   -e ADMIN_PASSWORD='pick-something' \
-  games-club
+  errolhassall/games-club:latest
 ```
 
 ### Local development (Bun)
@@ -162,6 +191,8 @@ All configuration is environment variables (see `.env.example`). There are no re
 | Variable         | Default          | Purpose                                                                                     |
 | ---------------- | ---------------- | ------------------------------------------------------------------------------------------- |
 | `PORT`           | `3000`           | Port the container listens on (compose maps `PORT:3000`).                                    |
+| `PUID`           | `1000`           | UID the container runs as. Set it to your host user (`id -u`) so files in `/data` are owned by you. |
+| `PGID`           | `1000`           | GID the container runs as. Set it to your host group (`id -g`).                              |
 | `DATABASE_PATH`  | `./data/games-club.db` | Where the SQLite file lives. Docker uses `/data/games-club.db` (the volume).            |
 | `ADMIN_USERNAME` | `admin`          | Username of the single admin account, created on first boot if it does not exist.           |
 | `ADMIN_NAME`     | `Club Admin`     | Display name for that account.                                                              |
@@ -249,10 +280,10 @@ bun run scripts/screenshots.ts  # regenerate docs/screenshots for the README
 
 ## CI
 
-Every push and pull request runs `.github/workflows/ci.yml`: Biome lint, strict typecheck, unit tests, production build, then the Playwright e2e suite in a second job.
+Every push and pull request runs `.github/workflows/ci.yml`: Biome lint, strict typecheck, unit tests, production build, then the Playwright e2e suite in a second job. On pushes to `main`, a final job builds the Docker image and pushes `errolhassall/games-club:latest` to Docker Hub (using the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repo secrets).
 
 ## Production notes
 
 - **Backups**: copy the SQLite file (or your `/data` volume) — that is the whole state. Stop the container or use `sqlite3 .backup` for a consistent snapshot while it runs.
 - **HTTPS**: put it behind a reverse proxy (Caddy/Nginx/Traefik), set `COOKIE_SECURE=true`, and keep `ADMIN_PASSWORD` in your `.env`.
-- **Updates**: `git pull && docker compose up -d --build`. The schema is created with `IF NOT EXISTS` on boot; there are no destructive migrations.
+- **Updates**: `docker compose pull && docker compose up -d`. The schema is created with `IF NOT EXISTS` on boot; there are no destructive migrations.

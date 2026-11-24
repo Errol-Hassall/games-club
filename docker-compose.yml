@@ -1,16 +1,18 @@
 services:
   games-club:
-    build: .
+    image: errolhassall/games-club:latest
     container_name: games-club
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_NAME: ${ADMIN_NAME:-Club Admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme123}
-      SEED_DEMO: ${SEED_DEMO:-false}
-      RAWG_API_KEY: ${RAWG_API_KEY:-}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      - PUID=1000
+      - PGID=1000
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_NAME=${ADMIN_NAME:-Club Admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme123}
+      - SEED_DEMO=${SEED_DEMO:-false}
+      - RAWG_API_KEY=${RAWG_API_KEY:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
     volumes:
       - games-club-data:/data
     restart: unless-stopped
